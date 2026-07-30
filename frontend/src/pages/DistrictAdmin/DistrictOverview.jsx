@@ -139,7 +139,7 @@ export default function DistrictOverview({ dashData, loading, underperforming, s
         <div className="da-section-hd">
           <span><i className="bi bi-bar-chart-steps"></i> {lang==='en'?'Crop Performance by Sector':'Umusaruro w\'Ibihingwa kuri Buri Murenge'}</span>
           <div style={{ display:'flex', gap:8 }}>
-            {['All','Maize','Beans','Rice'].map(c => (
+            {['All','Maize','Rice'].map(c => (
               <button key={c} className={`so-filter-chip ${cropFilter===c?'act':''}`} style={{ fontSize:11, padding:'5px 10px' }} onClick={()=>setCropFilter(c)}>
                 {c==='All'?(lang==='en'?'All':'Byose'):c}
               </button>
@@ -155,9 +155,8 @@ export default function DistrictOverview({ dashData, loading, underperforming, s
               <thead>
                 <tr>
                   <th>{lang==='en'?'Sector':'Umurenge'}</th>
-                  {(cropFilter==='All'||cropFilter==='Maize') && <th style={{ color: CROP_COLORS.Maize }}>🌽 Maize</th>}
-                  {(cropFilter==='All'||cropFilter==='Beans') && <th style={{ color: CROP_COLORS.Beans }}>🫘 Beans</th>}
-                  {(cropFilter==='All'||cropFilter==='Rice')  && <th style={{ color: CROP_COLORS.Rice  }}>🌾 Rice</th>}
+                  {(cropFilter==='All'||cropFilter==='Maize') && <th style={{ color: CROP_COLORS.Maize }}><i className="bi bi-emoji-smile" style={{ marginRight: 4 }}></i> Maize</th>}
+                  {(cropFilter==='All'||cropFilter==='Rice')  && <th style={{ color: CROP_COLORS.Rice  }}><i className="bi bi-star-fill" style={{ marginRight: 4 }}></i> Rice</th>}
                   <th>{lang==='en'?'Avg Yield':'Umusaruro Hagati'}</th>
                   <th>{lang==='en'?'Status':'Imiterere'}</th>
                   <th>{lang==='en'?'Predictions':'Ibisobanuro'}</th>
@@ -167,10 +166,9 @@ export default function DistrictOverview({ dashData, loading, underperforming, s
                 {sectorPerf.map((s, i) => {
                   const avg = parseFloat(s.avg_yield_kg_are || 0);
                   const maize = parseFloat(s.maize_avg || 0);
-                  const beans = parseFloat(s.beans_avg || 0);
                   const rice  = parseFloat(s.rice_avg  || 0);
-                  const mainCrop = cropFilter !== 'All' ? cropFilter : (maize > beans && maize > rice ? 'Maize' : beans > rice ? 'Beans' : 'Rice');
-                  const mainVal  = cropFilter === 'Maize' ? maize : cropFilter === 'Beans' ? beans : cropFilter === 'Rice' ? rice : avg;
+                  const mainCrop = cropFilter !== 'All' ? cropFilter : (maize > rice ? 'Maize' : 'Rice');
+                  const mainVal  = cropFilter === 'Maize' ? maize : cropFilter === 'Rice' ? rice : avg;
                   const st = perfStatus(mainVal || avg, mainCrop);
                   return (
                     <tr key={i} className="da-perf-tr">
@@ -180,9 +178,6 @@ export default function DistrictOverview({ dashData, loading, underperforming, s
                       </td>
                       {(cropFilter==='All'||cropFilter==='Maize') && (
                         <td>{maize > 0 ? <span className="da-yield-val" style={{ color: CROP_COLORS.Maize }}>{maize.toFixed(1)}</span> : <span className="da-no-data">—</span>}</td>
-                      )}
-                      {(cropFilter==='All'||cropFilter==='Beans') && (
-                        <td>{beans > 0 ? <span className="da-yield-val" style={{ color: CROP_COLORS.Beans }}>{beans.toFixed(1)}</span> : <span className="da-no-data">—</span>}</td>
                       )}
                       {(cropFilter==='All'||cropFilter==='Rice') && (
                         <td>{rice > 0 ? <span className="da-yield-val" style={{ color: CROP_COLORS.Rice }}>{rice.toFixed(1)}</span> : <span className="da-no-data">—</span>}</td>
@@ -280,19 +275,19 @@ export default function DistrictOverview({ dashData, loading, underperforming, s
             <div className="da-templates-title"><i className="bi bi-lightning-fill"></i> {lang==='en'?'Smart Templates (based on performance)':'Inyandiko Zihuse (bigendeye ku bikorwa)'}</div>
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               {[
-                { icon:'🏆', perf:'excellent', title: lang==='en'?'Excellent Performance':'Ibikorwa Byiza Cyane',
+                { icon: <i className="bi bi-trophy-fill"></i>, perf:'excellent', title: lang==='en'?'Excellent Performance':'Ibikorwa Byiza Cyane',
                   msg: lang==='en'
                     ? 'Congratulations on the excellent crop performance this season. Your sector is among the top performers in Bugesera District. Please document your best practices and share them at the next district agricultural meeting.'
                     : 'Murakaza neza ku bikorwa byiza cyane by\'ibihingwa uyu mwaka. Umurenge wanyu uri mu mirenge ikora neza cyane mu Karere ka Bugesera. Mwandike uburyo bwiza bwakoreshejwe kandi musangire mu nama ikurikira y\'ubuhinzi y\'akarere.' },
-                { icon:'✅', perf:'good', title: lang==='en'?'Good Performance — Push Higher':'Ibikorwa Byiza — Komeza Imbere',
+                { icon: <i className="bi bi-check-circle-fill"></i>, perf:'good', title: lang==='en'?'Good Performance — Push Higher':'Ibikorwa Byiza — Komeza Imbere',
                   msg: lang==='en'
                     ? 'Good crop performance this season. To reach the excellent category, encourage farmers to apply DAP fertilizer at 0.5 kg/are at planting and ensure irrigation during dry spells. Target: +15% yield improvement next season.'
                     : 'Ibikorwa byiza by\'ibihingwa uyu mwaka. Kugira ngo mugere mu cyiciro cy\'ibikorwa byiza cyane, shishikariza abahinzi gukoresha ifumbire ya DAP 0.5 kg/are igihe bateye kandi mwirinde amazi mu gihe cy\'izuba. Intego: kongera umusaruro 15% mu gihe gikurikira.' },
-                { icon:'⚠️', perf:'average', title: lang==='en'?'Below Average — Action Needed':'Munsi y\'Impuzandengo — Gira Icyo Ukora',
+                { icon: <i className="bi bi-exclamation-triangle-fill"></i>, perf:'average', title: lang==='en'?'Below Average — Action Needed':'Munsi y\'Impuzandengo — Gira Icyo Ukora',
                   msg: lang==='en'
                     ? 'Crop yields in your sector are below district average this season. Please conduct field visits this week to identify root causes. Key actions: (1) Soil pH testing, (2) Verify fertilizer application rates, (3) Check for pest/disease pressure. Report findings within 7 days.'
                     : 'Umusaruro w\'ibihingwa mu murenge wanyu uri munsi y\'impuzandengo y\'akarere uyu mwaka. Mwende mu mirima iki cyumweru kugira ngo mubashe kumenya impamvu nyayo. Ibikorwa by\'ingenzi: (1) Gupima pH y\'ubutaka, (2) Kugenzura uburyo bwo gushyira ifumbire, (3) Kureba udukoko/indwara. Mwohereze raporo mu minsi 7.' },
-                { icon:'🚨', perf:'critical', title: lang==='en'?'Critical — Urgent Intervention':'Byihutirwa — Gufasha Vuba',
+                { icon: <i className="bi bi-x-octagon-fill"></i>, perf:'critical', title: lang==='en'?'Critical — Urgent Intervention':'Byihutirwa — Gufasha Vuba',
                   msg: lang==='en'
                     ? 'URGENT: Crop yields in your sector are critically below district average. Immediate action required: (1) Emergency field assessment this week, (2) Identify affected farms and provide emergency fertilizer support, (3) Submit detailed report to district office within 3 days. District support team will visit next week.'
                     : 'BYIHUTIRWA: Umusaruro w\'ibihingwa mu murenge wanyu uri hasi cyane munsi y\'impuzandengo y\'akarere. Ibikorwa byihutirwa: (1) Gusuzuma imirima vuba iki cyumweru, (2) Kumenya amasambu akoresheje nabi kandi mubatere ifumbire y\'ubufasha, (3) Mwohereze raporo irambuye ku biro by\'akarere mu minsi 3. Itsinda ry\'ubufasha ry\'akarere rizaza iki cyumweru gikurikira.' },
@@ -313,7 +308,7 @@ export default function DistrictOverview({ dashData, loading, underperforming, s
           <div className="da-section-hd">
             <span><i className="bi bi-bar-chart-fill"></i> {lang==='en'?'District Crop Averages':'Umusaruro w\'Akarere'}</span>
           </div>
-          {Object.entries(dashData?.crop_data || { Maize: CROP_BENCH.Maize, Beans: CROP_BENCH.Beans, Rice: CROP_BENCH.Rice }).map(([crop, data]) => {
+          {Object.entries(dashData?.crop_data || { Maize: CROP_BENCH.Maize, Rice: CROP_BENCH.Rice }).filter(([crop]) => crop !== 'Beans').map(([crop, data]) => {
             const val = typeof data === 'object' ? data.avg_yield_kg_are : data;
             const bench = CROP_BENCH[crop] || 20;
             const pct = Math.min((val / 50) * 100, 100);

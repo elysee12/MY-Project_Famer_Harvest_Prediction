@@ -3,10 +3,19 @@ import { T, fmtDate, CROP_BENCH } from '../../constants/constants';
 import Topbar from '../../components/Common/Topbar';
 import CropIcon from '../../components/Common/CropIcon';
 
-const CROP_COLORS = { Maize: '#f59e0b', Beans: '#2dd4bf', Rice: '#0d9488' };
-const CROP_BG    = { Maize: '#fef3c7', Beans: '#ccfbf1', Rice: '#ccfbf1' };
+const CROP_COLORS = { Maize: '#f59e0b', Rice: '#0d9488' };
+const CROP_BG    = { Maize: '#fef3c7', Rice: '#ccfbf1' };
 
 export default function FarmerDashboard({ user, onNavigate, onResult, history = [], lang, setLang, notifications = [] }) {
+  console.log('🟩 FARMER DASHBOARD RENDERED');
+  console.log('🟩 User data:', { 
+    id: user.id, 
+    name: user.name, 
+    role: user.role,
+    cell_name: user.cell_name,
+    village_name: user.village_name
+  });
+  
   const t = T[lang];
   const farmHa  = user.farm_size_ha  || 0;
   const farmAre = user.farm_size_are || Math.round(farmHa * 100);
@@ -62,9 +71,17 @@ export default function FarmerDashboard({ user, onNavigate, onResult, history = 
             <h2 className="welcome-greet">
               {t.welcome}, <span className="welcome-name">{user.name?.split(' ')[0] || 'Farmer'}</span>!
             </h2>
-            <p className="welcome-sub" style={{ marginBottom: 20 }}>
-              <i className="bi bi-geo-alt-fill"></i> {user.sector || 'Nyamata'} · ID: <strong>{user.id || user.farmer_id}</strong>
+            <p className="welcome-sub" style={{ marginBottom: 8 }}>
+              <i className="bi bi-geo-alt-fill"></i> {user.sector || 'Gashora'} Sector · ID: <strong>{user.id || user.farmer_id}</strong>
             </p>
+            {(user.cell_name || user.village_name) && (
+              <p className="welcome-sub" style={{ marginBottom: 20, fontSize: 12, opacity: 0.9 }}>
+                <i className="bi bi-house-fill"></i> {user.cell_name || ''}{user.cell_name && user.village_name ? ' · ' : ''}{user.village_name || ''}
+              </p>
+            )}
+            {!user.cell_name && !user.village_name && (
+              <div style={{ marginBottom: 20 }}></div>
+            )}
             <div className="welcome-stats">
               <div className="w-stat">
                 <span className="w-stat-val">{farmAre}</span>
@@ -140,7 +157,7 @@ export default function FarmerDashboard({ user, onNavigate, onResult, history = 
         {bestPred && (
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontSize:12, fontWeight:800, color:'var(--s500)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:14 }}>
-              🏆 {lang === 'en' ? 'Your Best Prediction' : 'Igisobanuro Cyawe Cyiza Cyane'}
+              <i className="bi bi-trophy-fill" style={{ marginRight: 6 }}></i> {lang === 'en' ? 'Your Best Prediction' : 'Igisobanuro Cyawe Cyiza Cyane'}
             </div>
             <div onClick={() => onResult(bestPred)} style={{
               background:'linear-gradient(135deg,#0f3d38,#0d9488)', color:'white',

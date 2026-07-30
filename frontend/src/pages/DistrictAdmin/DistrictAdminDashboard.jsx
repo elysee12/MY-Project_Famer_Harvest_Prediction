@@ -48,7 +48,7 @@ export default function DistrictAdminDashboard({ user, onLogout, lang, setLang }
       if (data.success) setOfficers(data.officers);
     } catch {
       setOfficers([
-        { id: 'S001', name: 'Marie Mukaso',   sector: 'Nyamata', email: 'marie@sector.gov.rw' },
+        { id: 'S001', name: 'Marie Mukaso',   sector: 'Gashora', email: 'marie@sector.gov.rw' },
         { id: 'S002', name: 'Jean Habimana',  sector: 'Gashora', email: 'jean@sector.gov.rw' },
       ]);
     }
@@ -104,8 +104,8 @@ export default function DistrictAdminDashboard({ user, onLogout, lang, setLang }
               <div className="dash-header-clean">
                 <span className="dash-header-icon" style={{ background: '#ccfbf1', color: '#0d9488' }}><i className="bi bi-buildings"></i></span>
                 <div className="dash-header-text">
-                  <h1 className="dash-title">{lang === "en" ? "District Dashboard" : "Incumbane y'Akarere"}</h1>
-                  <p className="dash-subtitle">Bugesera District · Rwanda</p>
+                  <h1 className="dash-title">{lang === "en" ? "System Admin Dashboard" : "Incumbane y'Umuyobozi Mukuru"}</h1>
+                  <p className="dash-subtitle">Gashora Sector · Bugesera District</p>
                 </div>
               </div>
             }

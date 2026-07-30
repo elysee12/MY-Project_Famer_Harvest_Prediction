@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
+import { AlertTriangle, Package } from 'lucide-react';
 import { T, API_BASE, fmtDate, CROP_BENCH } from '../../constants/constants';
 
 export default function FarmerDetailView({ farmerId, onBack, lang, setLang, setSelectedPred, officer, autoAdvice, onAdviceUsed }) {
@@ -241,8 +242,8 @@ export default function FarmerDetailView({ farmerId, onBack, lang, setLang, setS
                       <tr key={i} className="so-pred-tr" onClick={() => setSelectedPred && setSelectedPred(p)}>
                         <td>
                           <span className="so-crop-tag" style={{
-                            background: { Maize: '#fef3c7', Beans: '#ccfbf1', Rice: '#ccfbf1' }[p.crop_type || p.crop] || '#f1f5f9',
-                            color: { Maize: '#92400e', Beans: '#0f766e', Rice: '#0f766e' }[p.crop_type || p.crop] || '#334155'
+                            background: { Maize: '#fef3c7', Rice: '#ccfbf1' }[p.crop_type || p.crop] || '#f1f5f9',
+                            color: { Maize: '#92400e', Rice: '#0f766e' }[p.crop_type || p.crop] || '#334155'
                           }}>
                             {p.crop_type || p.crop}
                           </span>
@@ -286,7 +287,7 @@ export default function FarmerDetailView({ farmerId, onBack, lang, setLang, setS
               </div>
               <div>
                 <div style={{ fontWeight:800, fontSize:13, color:'#7f1d1d', marginBottom:2 }}>
-                  {lang==='en'?'⚠️ Underperforming Farm Alert':'⚠️ Akarima Gafite Ikibazo'}
+                  <i className="bi bi-exclamation-triangle-fill" style={{ marginRight: 4 }}></i> {lang==='en'?'Underperforming Farm Alert':'Akarima Gafite Ikibazo'}
                 </div>
                 <div style={{ fontSize:12, color:'#991b1b' }}>
                   {lang==='en'?'Advice pre-filled based on yield gap. Review and send.':'Inama yuzurijwe bigendeye ku musaruro muke. Suzuma hanyuma uohereze.'}
@@ -380,25 +381,25 @@ export default function FarmerDetailView({ farmerId, onBack, lang, setLang, setS
             <div className="so-templates-grid">
               {[
                 {
-                  icon: '🌱', title: lang === 'en' ? 'Planting Reminder' : 'Igihe cyo Gutera',
+                  icon: <i className="bi bi-flower1"></i>, title: lang === 'en' ? 'Planting Reminder' : 'Igihe cyo Gutera',
                   msg: lang === 'en'
                     ? 'Dear farmer, the optimal planting window for Season A is approaching. Ensure your seeds and fertilizer are ready. Apply DAP at 0.5 kg/are at planting time for best results.'
                     : 'Muhinzi wacu, igihe cyo gutera Season A kigeze. Menya ko imbuto n\'ifumbire byawe biri mwanya. Koresha DAP 0.5 kg/are igihe utera kugira ngo ubone umusaruro mwiza.'
                 },
                 {
-                  icon: '💧', title: lang === 'en' ? 'Irrigation Alert' : 'Impururu yo Kuhira',
+                  icon: <i className="bi bi-droplet-fill"></i>, title: lang === 'en' ? 'Irrigation Alert' : 'Impururu yo Kuhira',
                   msg: lang === 'en'
                     ? 'Rainfall has been below average this week. If you have irrigation access, apply 4-6cm of water per week during the flowering stage to protect your yield.'
                     : 'Imvura yari munsi y\'impuzandengo iki cyumweru. Niba ufite uburyo bwo kuhira, koresha 4-6cm y\'amazi buri cyumweru mu gihe cy\'uburabyo kugira ngo wirinde igihombo.'
                 },
                 {
-                  icon: '🐛', title: lang === 'en' ? 'Pest Warning' : 'Impururu y\'Udukoko',
+                  icon: <AlertTriangle size={20} color="#dc2626" />, title: lang === 'en' ? 'Pest Warning' : 'Impururu y\'Udukoko',
                   msg: lang === 'en'
                     ? 'Fall Armyworm has been reported in nearby farms. Scout your fields every 5 days and apply neem-based pesticide if infestation is detected. Contact the sector office for free pesticide support.'
                     : 'Udukoko tw\'Ingabo (Fall Armyworm) twabonwe mu masambu ari hafi. Genzura imirima yawe buri minsi 5 kandi ukoreshe pesticide ya neem niba ubonye udukoko. Baza ibiro by\'umurenge kugira ngo ubone pesticide ubuntu.'
                 },
                 {
-                  icon: '📦', title: lang === 'en' ? 'Post-Harvest Storage' : 'Ububiko nyuma yo Gusarura',
+                  icon: <Package size={20} color="#3b82f6" />, title: lang === 'en' ? 'Post-Harvest Storage' : 'Ububiko nyuma yo Gusarura',
                   msg: lang === 'en'
                     ? 'After harvest, dry your grain to below 13% moisture before storing. Use hermetic bags to prevent aflatoxin and pest damage. This protects your investment and allows you to sell at better prices later.'
                     : 'Nyuma yo gusarura, yubika imyaka munsi ya 13% y\'ubumidure mbere yo kuyibika. Koresha imifuko itinjiza umwuka kugira ngo wirinde aflatoxin n\'udukoko. Ibi birinda ishoramari ryawe kandi bigufasha kugurisha ku giciro cyiza nyuma.'

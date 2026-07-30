@@ -19,8 +19,8 @@ export default function DistrictReports({ user, lang }) {
       if (data.success) setReports(data.reports);
     } catch {
       setReports([
-        { report_id: 'R001', title: 'Nyamata Weekly Status – Season A', sender_name: 'Marie Uwase', sector_name: 'Nyamata',
-          content: 'Summary of 18 predictions in Nyamata Sector:\n- Total Submissions: 18\n- Avg Expected Yield: 23.4 kg/are\n- Crops: Maize, Beans\n\nFall Armyworm sightings on 3 farms. Recommend immediate intervention.',
+        { report_id: 'R001', title: 'Gashora Weekly Status – Season A', sender_name: 'Marie Uwase', sector_name: 'Gashora',
+          content: 'Summary of 18 predictions in Gashora Sector:\n- Total Submissions: 18\n- Avg Expected Yield: 23.4 kg/are\n- Crops: Maize, Rice\n\nFall Armyworm sightings on 3 farms. Recommend immediate intervention.',
           created_at: new Date(Date.now() - 86400000).toISOString() },
         { report_id: 'R002', title: 'Gashora Monthly Crop Report', sender_name: 'Jean Paul Habimana', sector_name: 'Gashora',
           content: 'Monthly performance report for Gashora Sector:\n- Maize: 24.1 kg/are avg\n- Beans: 11.8 kg/are avg\n- Rice: 36.2 kg/are avg\n\nGood rainfall this season. Soil moisture is optimal.',

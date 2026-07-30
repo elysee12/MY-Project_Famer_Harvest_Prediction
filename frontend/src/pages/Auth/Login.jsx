@@ -136,7 +136,7 @@ export default function Login({ onLogin, lang, setLang, onRegister, onForgot, on
         </div>
 
         <div style={{ textAlign: "center", marginTop: 24, paddingTop: 16, fontSize: 11, color: "var(--s500)", fontWeight: 500 }}>
-          🌾 {lang === "rw" ? "Urunyobwe rw'Ubuhinzi bwa Bugesera" : "Bugesera Agricultural System"} · Rwanda Polytechnic
+          <i className="bi bi-check2-circle" style={{ marginRight: 4 }}></i> {lang === "rw" ? "Urunyobwe rw'Ubuhinzi bwa Bugesera" : "Bugesera Agricultural System"} · UNIVERSITY OF KIGALI
         </div>
       </div>
 
@@ -150,7 +150,7 @@ export default function Login({ onLogin, lang, setLang, onRegister, onForgot, on
             Farmer
           </button>
           <button onClick={() => { setEmail("marie@sector.gov.rw"); setPw("harvest2024"); }} className="demo-pill">
-            Sector Officer (Nyamata)
+            Sector Officer (Gashora)
           </button>
           <button onClick={() => { setEmail("pascal@district.gov.rw"); setPw("harvest2024"); }} className="demo-pill">
             District Admin

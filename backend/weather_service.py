@@ -38,7 +38,7 @@ def get_real_weather(sector: str, planting_date: str = None) -> dict:
     Returns seasonal aggregates matching our model features.
     Falls back to historical averages if API fails.
     """
-    coords = SECTOR_COORDS.get(sector, SECTOR_COORDS['Nyamata'])
+    coords = SECTOR_COORDS.get(sector, SECTOR_COORDS['Gashora'])
     lat, lon = coords['lat'], coords['lon']
 
     # Check cache

@@ -1,7 +1,7 @@
 """
 +==================================================================+
 |   BUGESERA HARVEST PREDICTION SYSTEM - Flask REST API v4.0      |
-|   Author  : Cesalie UWIMPUHWE | Rwanda Polytechnic               |
+|   Author  : NTWARI David Danken | UNIVERSITY OF KIGALI          |
 |   Units   : ARE (1 ha = 100 are) | Yield: kg/are                |
 |   Models  : Gradient Boosting (best), Random Forest, Linear Reg |
 +==================================================================+
@@ -815,22 +815,22 @@ def get_recommendations(crop: str, yield_pa: float, sector: str = '') -> list:
 _predictions: list = []
 _users: dict = {
     "F001": {"id":"F001","name":"Cesalie Uwimpuhwe","phone":"+250782001001", "email":"cesalie@gmail.com",
-             "sector":"Nyamata","farm_size_ha":0.25,"farm_size_are":25,
-             "crops":["Maize","Beans"],"role":"farmer","password":"harvest2024"},
+             "sector":"Gashora","farm_size_ha":0.25,"farm_size_are":25,
+             "crops":["Maize","Rice"],"role":"farmer","password":"harvest2024"},
     "F002": {"id":"F002","name":"Jean Pierre Habimana","phone":"+250782002002", "email":"jean@gmail.com",
              "sector":"Gashora","farm_size_ha":1.8,"farm_size_are":180,
              "crops":["Rice"],"role":"farmer","password":"harvest2024"},
     "F003": {"id":"F003","name":"Vestine Mukamana","phone":"+250782003003", "email":"vestine@gmail.com",
-             "sector":"Juru","farm_size_ha":3.2,"farm_size_are":320,
+             "sector":"Gashora","farm_size_ha":3.2,"farm_size_are":320,
              "crops":["Maize","Rice"],"role":"farmer","password":"harvest2024"},
     "A001": {"id":"A001","name":"Dr. Pascal Nkurunziza","phone":"+250788100100", "email":"pascal@district.gov.rw",
-             "sector":"Bugesera","department":"Crop Production",
+             "sector":"Gashora","department":"Crop Production",
              "role":"officer","password":"harvest2024"},
     "A100": {"id":"A100","name":"District Agri Officer","phone":"+250788000000", "email":"admin@bugesera.gov.rw",
-             "sector":"Bugesera","department":"Administration",
+             "sector":"Gashora","department":"Administration",
              "role":"district","password":"harvest2024"},
     "S001": {"id":"S001","name":"Marie Mukaso","phone":"+250788222333", "email":"marie@sector.gov.rw",
-             "sector":"Nyamata","department":"Extension Services",
+             "sector":"Gashora","department":"Extension Services",
              "role":"sector","password":"harvest2024"},
 }
 _next_farmer = 4
@@ -1060,7 +1060,7 @@ def change_password_verify():
 @app.route('/api/weather', methods=['GET'])
 def get_weather():
     """Get real-time weather for a sector from Open-Meteo."""
-    sector = request.args.get('sector', 'Nyamata')
+    sector = request.args.get('sector', 'Gashora')
     planting_date = request.args.get('date')
     if WEATHER_ENABLED:
         try:
@@ -1074,13 +1074,13 @@ def get_weather():
 @app.route('/api/weather/forecast', methods=['GET'])
 def get_weather_forecast():
     """Get 7-day forecast + current conditions for a sector from Open-Meteo."""
-    sector = request.args.get('sector', 'Nyamata')
+    sector = request.args.get('sector', 'Gashora')
     if not WEATHER_ENABLED:
         return jsonify({'success': False, 'error': 'Weather service not available'}), 503
     try:
         import urllib3
         urllib3.disable_warnings()
-        coords = SECTOR_COORDS.get(sector, SECTOR_COORDS.get('Nyamata', {'lat': -2.15, 'lon': 30.08}))
+        coords = SECTOR_COORDS.get(sector, SECTOR_COORDS.get('Gashora', {'lat': -2.03, 'lon': 30.12}))
         lat, lon = coords['lat'], coords['lon']
 
         import requests as req
@@ -1196,6 +1196,11 @@ def login():
                         'farm_size_are': user_row.get('farm_size_are', 0),
                         'crops'       : user_row.get('crops', []),
                         'farmer_category': user_row.get('farmer_category','Medium'),
+                        'cooperative_name': user_row.get('cooperative_name') or user_row.get('coop_name'),
+                        'coop_total_members': user_row.get('coop_total_members'),
+                        'farmer_id'   : user_row.get('farmer_id'),
+                        'cell_name'   : user_row.get('cell_name'),
+                        'village_name': user_row.get('village_name'),
                     }})
                 else:
                     print(f"[DEBUG] Password mismatch for DB user")
@@ -1281,17 +1286,19 @@ def register():
     d    = request.get_json() or {}
     role = d.get('role', 'farmer')
     print(f"[REGISTER] incoming request: role={role}, email={d.get('email')}, phone={d.get('phone')}")
+    print(f"[REGISTER] full data: {d}")
 
     required = ['name','email','phone']
     # Department is fixed for sector officers; only sector name required for sector role
     if role != 'farmer':
         if role == 'sector':
             required.append('sector')
-        else:
+        elif role != 'cooperative':  # cooperative members don't need department
             required.append('department')
 
     for field in required:
         if not d.get(field):
+            print(f"[REGISTER] Missing required field: {field}")
             return jsonify({'error': f'Missing field: {field}'}), 400
 
     email_sent = False
@@ -1299,16 +1306,19 @@ def register():
 
     phone_val = normalize_rwanda_phone(d.get('phone', ''))
     if not is_valid_rwanda_phone(d.get('phone', '')):
+        print(f"[REGISTER] Invalid phone number: {d.get('phone')}")
         return jsonify({'error': 'Phone number must be a valid Rwandan MTN/Tigo number with 10 digits.'}), 400
     d['phone'] = phone_val
 
     # Email Validation
     email_val = d.get('email', '').strip().lower()
-    if role == 'farmer':
+    if role == 'farmer' or role == 'cooperative':
         if not is_valid_gmail_address(email_val):
+            print(f"[REGISTER] Invalid email for farmer/cooperative: {email_val}")
             return jsonify({'error': 'Invalid email. Please use a valid Gmail address ending in @gmail.com.'}), 400
     else:
         if not is_valid_email(email_val):
+            print(f"[REGISTER] Invalid email format: {email_val}")
             return jsonify({'error': 'Invalid email format. Please use a valid email address.'}), 400
     d['email'] = email_val
 
@@ -1318,34 +1328,30 @@ def register():
             
             email_normalized = d['email'].strip().lower()
             if check_email_exists(email_normalized):
+                print(f"[REGISTER] Email already exists: {email_normalized}")
                 return jsonify({'error': 'This email is already registered. Please login with your existing account.'}), 400
             
             d['email'] = email_normalized # Ensure normalized email is used for registration
             
-            if role == 'farmer':
-                user = register_farmer(d)
-                user['role'] = 'farmer'
+            if role == 'farmer' or role == 'cooperative':
+                # Use new Gashora-specific registration with location support
+                from database import register_farmer_with_location
+                print(f"[REGISTER] Registering as {role} with data: name={d.get('name')}, cooperative_id={d.get('cooperative_id')}")
+                user = register_farmer_with_location(d)
+                user['role'] = d.get('role', 'farmer')  # Can be 'farmer' or 'cooperative'
                 
-                # 1. Automatically create their first farm
+                # Welcome notification (no approval needed anymore)
                 try:
-                    from database import add_farm, save_advice
-                    add_farm({
-                        'farmer_id': user['farmer_id'],
-                        'farm_name': 'Primary Farm',
-                        'sector': d.get('sector'),
-                        'farm_size_are': float(d.get('farm_size_ha', 0)) * 100
-                    })
-                    
-                    # 2. Create Welcome Notification (Advice)
+                    from database import save_advice
                     generated_pw = user.get('generated_password', 'harvest2024')
-                    welcome_subject = "Welcome to Bugesera Harvest Predictor!" if d.get('lang') != 'rw' else "Murakaza neza muri Sisitemu y'Imyaka!"
+                    welcome_subject = "Welcome to Gashora Harvest Predictor!" if d.get('lang') != 'rw' else "Murakaza neza muri Sisitemu y'Imyaka ya Gashora!"
                     
-                    # 3. Send Beautiful Email asynchronously
-                    html_content = get_registration_html(user['full_name'], user['email'], generated_pw, 'farmer')
+                    # Send email asynchronously
+                    html_content = get_registration_html(user.get('full_name'), user['email'], generated_pw, 'farmer')
                     email_sent, email_error = send_email_async(user['email'], welcome_subject, html_content)
                     
                     # Save notification to DB for in-app viewing
-                    welcome_msg = f"Hello {user['full_name']}, your account has been created. ID: {user['farmer_id']}, PW: {generated_pw}"
+                    welcome_msg = f"Hello {user.get('full_name')}, your account has been created. ID: {user['farmer_id']}, PW: {generated_pw}. You can now login immediately."
                     save_advice('A001', {
                         'farmer_id': user['farmer_id'],
                         'subject': welcome_subject,
@@ -1356,7 +1362,7 @@ def register():
                 except Exception as fe:
                     email_sent = False
                     email_error = str(fe)
-                    print(f"Initial farm/notification creation failed: {fe}")
+                    print(f"[REGISTER] Welcome notification creation failed: {fe}")
             else:
                 # Force department to 'Crop Production' for sector officers
                 if role == 'sector':
@@ -1371,18 +1377,22 @@ def register():
                 except Exception as oe:
                     email_sent = False
                     email_error = str(oe)
-                    print(f"Officer email send failed: {oe}")
+                    print(f"[REGISTER] Officer email send failed: {oe}")
 
             if not email_sent:
+                print(f"[REGISTER] Email send failed: {email_error}")
                 return jsonify({
                     'success': False,
                     'error': 'Account created, but email delivery failed. Please contact support or try again later.',
                     'email_error': email_error
                 }), 500
 
+            print(f"[REGISTER] Successfully registered: {user.get('farmer_id') or user.get('officer_id')}")
             return jsonify({'success': True, 'user': user, 'generated_password': user.get('generated_password'), 'email_sent': email_sent}), 201
         except Exception as e:
-            print(f"DB registration error: {e}")
+            print(f"[REGISTER] DB registration error: {e}")
+            import traceback
+            traceback.print_exc()
             return jsonify({'error': f'Database error: {str(e)}. Please check if MySQL is running.'}), 500
 
     return jsonify({'error': 'Registration failed. Backend in-memory mode active.'}), 500
@@ -1427,6 +1437,54 @@ def list_officers():
                 return jsonify({'success': True, 'officers': rows})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/officers/<officer_id>', methods=['GET', 'PUT', 'DELETE'])
+def officer_detail_route(officer_id):
+    """Get, update or delete a specific officer by ID"""
+    if not DB_ENABLED:
+        return jsonify({'error': 'Database not enabled'}), 503
+    
+    if request.method == 'GET':
+        try:
+            officer = get_officer(officer_id)
+            if not officer:
+                return jsonify({'error': 'Officer not found'}), 404
+            # Clean datetime objects
+            clean_officer = {}
+            for k, v in officer.items():
+                if hasattr(v, 'isoformat'):
+                    clean_officer[k] = v.isoformat()
+                else:
+                    clean_officer[k] = v
+            return jsonify({'success': True, 'officer': clean_officer})
+        except Exception as e:
+            print(f"Get Officer error: {e}")
+            return jsonify({'error': str(e)}), 500
+    
+    elif request.method == 'PUT':
+        d = request.get_json() or {}
+        try:
+            if update_user(officer_id, 'officer', d):
+                return jsonify({'success': True})
+            return jsonify({'error': 'Update failed'}), 400
+        except Exception as e:
+            print(f"Update Officer error: {e}")
+            return jsonify({'error': str(e)}), 500
+    
+    elif request.method == 'DELETE':
+        try:
+            # Soft delete - set is_active=0
+            with get_db() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("UPDATE officers SET is_active=0 WHERE officer_id=%s", (officer_id,))
+                    conn.commit()
+                    if cur.rowcount > 0:
+                        return jsonify({'success': True})
+                    return jsonify({'error': 'Officer not found'}), 404
+        except Exception as e:
+            print(f"Delete Officer error: {e}")
+            return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/test-smtp', methods=['POST'])
@@ -1981,6 +2039,164 @@ def officer_dashboard():
                           'farm_size_are':f.get('farm_size_are',0)} for f in farmers],
         'db_connected': False
     })
+
+
+@app.route('/api/sector/analytics', methods=['GET'])
+def sector_analytics():
+    """
+    Activity Analytics endpoint for Sector Officers
+    Returns comprehensive analytics data filtered by location, crop, and farmer type
+    """
+    cell_id = request.args.get('cell_id')
+    village_id = request.args.get('village_id')
+    crop = request.args.get('crop')
+    farmer_type = request.args.get('farmer_type')  # 'all', 'individual', 'cooperative'
+    
+    if not DB_ENABLED:
+        return jsonify({
+            'success': False,
+            'error': 'Database not available'
+        }), 500
+    
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                # Base query for farmers and predictions
+                where_clauses = ["f.is_active = 1"]
+                params = []
+                
+                # Filter by cell
+                if cell_id and cell_id != 'all':
+                    where_clauses.append("c.cell_id = %s")
+                    params.append(cell_id)
+                
+                # Filter by village
+                if village_id and village_id != 'all':
+                    where_clauses.append("v.village_id = %s")
+                    params.append(village_id)
+                
+                # Filter by farmer type
+                if farmer_type and farmer_type != 'all':
+                    if farmer_type == 'cooperative':
+                        where_clauses.append("f.is_cooperative_member = 1")
+                    elif farmer_type == 'individual':
+                        where_clauses.append("f.is_cooperative_member = 0")
+                
+                where_sql = " AND ".join(where_clauses)
+                
+                # Build crop filter for predictions
+                crop_filter_sql = ""
+                crop_params = []
+                if crop and crop != 'all':
+                    crop_filter_sql = "AND p.crop_type = %s"
+                    crop_params = [crop]
+                
+                # Summary statistics
+                summary_query = f"""
+                    SELECT 
+                        COUNT(DISTINCT f.farmer_id) as total_farmers,
+                        COUNT(DISTINCT CASE WHEN f.is_cooperative_member = 0 THEN f.farmer_id END) as individual_farmers,
+                        COUNT(DISTINCT CASE WHEN f.is_cooperative_member = 1 THEN f.farmer_id END) as cooperative_members,
+                        COALESCE(SUM(p.total_yield_kg), 0) as total_yield,
+                        COALESCE(AVG(p.yield_per_are_kg), 0) as average_yield,
+                        COUNT(DISTINCT CASE WHEN p.yield_per_are_kg >= 25 THEN f.farmer_id END) as top_performers,
+                        COUNT(DISTINCT CASE WHEN p.yield_per_are_kg < 15 THEN f.farmer_id END) as underperformers
+                    FROM farmers f
+                    LEFT JOIN farms fm ON f.farmer_id = fm.farmer_id
+                    LEFT JOIN villages v ON fm.village_id = v.village_id
+                    LEFT JOIN cells c ON v.cell_id = c.cell_id
+                    LEFT JOIN predictions p ON f.farmer_id = p.farmer_id {crop_filter_sql}
+                    WHERE {where_sql}
+                """
+                
+                cur.execute(summary_query, params + crop_params)
+                summary_row = cur.fetchone()
+                
+                summary = {
+                    'totalFarmers': int(summary_row['total_farmers'] or 0),
+                    'individualFarmers': int(summary_row['individual_farmers'] or 0),
+                    'cooperativeMembers': int(summary_row['cooperative_members'] or 0),
+                    'totalYield': float(summary_row['total_yield'] or 0),
+                    'averageYield': float(summary_row['average_yield'] or 0),
+                    'topPerformers': int(summary_row['top_performers'] or 0),
+                    'underperformers': int(summary_row['underperformers'] or 0)
+                }
+                
+                # Cell-level data
+                cell_where = "1=1"
+                cell_params = crop_params.copy()
+                if cell_id and cell_id != 'all':
+                    cell_where = "c.cell_id = %s"
+                    cell_params.append(cell_id)
+                
+                cell_query = f"""
+                    SELECT 
+                        c.cell_name as name,
+                        COUNT(DISTINCT f.farmer_id) as totalFarmers,
+                        COUNT(DISTINCT CASE WHEN f.is_cooperative_member = 0 THEN f.farmer_id END) as individualFarmers,
+                        COUNT(DISTINCT CASE WHEN f.is_cooperative_member = 1 THEN f.farmer_id END) as cooperativeMembers,
+                        COALESCE(AVG(p.yield_per_are_kg), 0) as avgYield,
+                        CASE 
+                            WHEN AVG(p.yield_per_are_kg) >= 25 THEN 'excellent'
+                            WHEN AVG(p.yield_per_are_kg) >= 20 THEN 'good'
+                            WHEN AVG(p.yield_per_are_kg) >= 15 THEN 'average'
+                            ELSE 'poor'
+                        END as performance
+                    FROM cells c
+                    LEFT JOIN villages v ON c.cell_id = v.cell_id
+                    LEFT JOIN farms fm ON v.village_id = fm.village_id
+                    LEFT JOIN farmers f ON fm.farmer_id = f.farmer_id AND f.is_active = 1
+                    LEFT JOIN predictions p ON f.farmer_id = p.farmer_id {crop_filter_sql}
+                    WHERE {cell_where}
+                    GROUP BY c.cell_id, c.cell_name
+                    ORDER BY avgYield DESC
+                """
+                
+                cur.execute(cell_query, cell_params)
+                cell_data = [dict(row) for row in cur.fetchall()]
+                
+                # Recent activities with farmer type
+                activities_query = f"""
+                    SELECT 
+                        f.full_name as farmerName,
+                        CASE WHEN f.is_cooperative_member = 1 THEN 'cooperative' ELSE 'individual' END as farmerType,
+                        p.crop_type as crop,
+                        CONCAT(c.cell_name, ', ', v.village_name) as location,
+                        CONCAT('Predicted ', ROUND(p.yield_per_are_kg, 1), ' kg/are yield') as action,
+                        DATE_FORMAT(p.created_at, '%%b %%d, %%Y') as timestamp
+                    FROM predictions p
+                    JOIN farmers f ON p.farmer_id = f.farmer_id
+                    LEFT JOIN farms fm ON f.farmer_id = fm.farmer_id
+                    LEFT JOIN villages v ON fm.village_id = v.village_id
+                    LEFT JOIN cells c ON v.cell_id = c.cell_id
+                    WHERE {where_sql} {crop_filter_sql}
+                    ORDER BY p.created_at DESC
+                    LIMIT 20
+                """
+                
+                cur.execute(activities_query, params + crop_params)
+                activities = [dict(row) for row in cur.fetchall()]
+                
+                return jsonify({
+                    'success': True,
+                    'analytics': {
+                        'summary': summary,
+                        'cellData': cell_data,
+                        'villageData': [],  # Can be expanded later
+                        'cropData': [],     # Can be expanded later
+                        'recentActivities': activities,
+                        'yieldTrends': []   # Can be expanded later
+                    }
+                })
+                
+    except Exception as e:
+        import traceback
+        print(f"Analytics endpoint error: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 
 @app.route('/api/model-info', methods=['GET'])
@@ -2693,6 +2909,178 @@ def admin_sector_details(sector_id):
         return jsonify({'success': True, 'data': data})
     except Exception as e:
         print(f"Sector Details error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# ── Gashora Location Endpoints ────────────────────────────────────────────────
+@app.route('/api/cells', methods=['GET'])
+def get_cells_route():
+    if not DB_ENABLED:
+        return jsonify({'error': 'Database not enabled'}), 503
+    try:
+        from database import get_cells
+        cells = get_cells()
+        return jsonify({'success': True, 'cells': cells})
+    except Exception as e:
+        print(f"Get Cells error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/villages', methods=['GET'])
+def get_villages_route():
+    if not DB_ENABLED:
+        return jsonify({'error': 'Database not enabled'}), 503
+    cell_id = request.args.get('cell_id')
+    if not cell_id:
+        return jsonify({'error': 'cell_id required'}), 400
+    try:
+        from database import get_villages_by_cell
+        villages = get_villages_by_cell(int(cell_id))
+        return jsonify({'success': True, 'villages': villages})
+    except Exception as e:
+        print(f"Get Villages error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/locations', methods=['GET'])
+def get_all_locations_route():
+    if not DB_ENABLED:
+        return jsonify({'error': 'Database not enabled'}), 503
+    try:
+        from database import get_all_gashora_locations
+        locations = get_all_gashora_locations()
+        return jsonify({'success': True, 'locations': locations})
+    except Exception as e:
+        print(f"Get Locations error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# ── Cooperative Endpoints ─────────────────────────────────────────────────────
+@app.route('/api/cooperatives', methods=['GET', 'POST'])
+def cooperatives_route():
+    if not DB_ENABLED:
+        return jsonify({'error': 'Database not enabled'}), 503
+    
+    if request.method == 'GET':
+        try:
+            from database import get_all_cooperatives
+            cooperatives = get_all_cooperatives()
+            return jsonify({'success': True, 'cooperatives': cooperatives})
+        except Exception as e:
+            print(f"Get Cooperatives error: {e}")
+            return jsonify({'error': str(e)}), 500
+    
+    elif request.method == 'POST':
+        d = request.get_json() or {}
+        if not d.get('name'):
+            return jsonify({'error': 'Cooperative name required'}), 400
+        try:
+            from database import create_cooperative
+            coop = create_cooperative(d)
+            return jsonify({'success': True, 'cooperative': coop})
+        except Exception as e:
+            print(f"Create Cooperative error: {e}")
+            return jsonify({'error': str(e)}), 500
+
+@app.route('/api/cooperatives/<cooperative_id>', methods=['PUT', 'DELETE'])
+def cooperative_detail_route(cooperative_id):
+    if not DB_ENABLED:
+        return jsonify({'error': 'Database not enabled'}), 503
+    
+    if request.method == 'PUT':
+        d = request.get_json() or {}
+        try:
+            from database import update_cooperative
+            if update_cooperative(cooperative_id, d):
+                return jsonify({'success': True})
+            return jsonify({'error': 'Update failed'}), 400
+        except Exception as e:
+            print(f"Update Cooperative error: {e}")
+            return jsonify({'error': str(e)}), 500
+    
+    elif request.method == 'DELETE':
+        try:
+            from database import delete_cooperative
+            if delete_cooperative(cooperative_id):
+                return jsonify({'success': True})
+            return jsonify({'error': 'Cannot delete cooperative with active members'}), 400
+        except Exception as e:
+            print(f"Delete Cooperative error: {e}")
+            return jsonify({'error': str(e)}), 500
+
+# ── Admin Farmer Management Endpoints ─────────────────────────────────────────
+@app.route('/api/admin/all-farmers', methods=['GET'])
+def admin_all_farmers_route():
+    if not DB_ENABLED:
+        return jsonify({'error': 'Database not enabled'}), 503
+    try:
+        from database import get_all_farmers
+        farmers = get_all_farmers()
+        # Clean datetime objects
+        clean = []
+        for row in farmers:
+            r = {}
+            for k, v in row.items():
+                if hasattr(v, 'isoformat'):
+                    r[k] = v.isoformat()
+                else:
+                    r[k] = v
+            clean.append(r)
+        return jsonify({'success': True, 'farmers': clean})
+    except Exception as e:
+        print(f"Admin Get All Farmers error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/pending-farmers', methods=['GET'])
+def admin_pending_farmers_route():
+    if not DB_ENABLED:
+        return jsonify({'error': 'Database not enabled'}), 503
+    try:
+        from database import get_pending_farmers
+        farmers = get_pending_farmers()
+        # Clean datetime objects
+        clean = []
+        for row in farmers:
+            r = {}
+            for k, v in row.items():
+                if hasattr(v, 'isoformat'):
+                    r[k] = v.isoformat()
+                else:
+                    r[k] = v
+            clean.append(r)
+        return jsonify({'success': True, 'farmers': clean})
+    except Exception as e:
+        print(f"Admin Get Pending Farmers error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/approve-farmer', methods=['POST'])
+def admin_approve_farmer_route():
+    if not DB_ENABLED:
+        return jsonify({'error': 'Database not enabled'}), 503
+    d = request.get_json() or {}
+    farmer_id = d.get('farmer_id')
+    if not farmer_id:
+        return jsonify({'error': 'farmer_id required'}), 400
+    try:
+        from database import approve_farmer
+        if approve_farmer(farmer_id):
+            return jsonify({'success': True})
+        return jsonify({'error': 'Approval failed'}), 400
+    except Exception as e:
+        print(f"Admin Approve Farmer error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/reject-farmer', methods=['POST'])
+def admin_reject_farmer_route():
+    if not DB_ENABLED:
+        return jsonify({'error': 'Database not enabled'}), 503
+    d = request.get_json() or {}
+    farmer_id = d.get('farmer_id')
+    if not farmer_id:
+        return jsonify({'error': 'farmer_id required'}), 400
+    try:
+        from database import reject_farmer
+        if reject_farmer(farmer_id):
+            return jsonify({'success': True})
+        return jsonify({'error': 'Rejection failed'}), 400
+    except Exception as e:
+        print(f"Admin Reject Farmer error: {e}")
         return jsonify({'error': str(e)}), 500
 
 # ── Init database on startup ──────────────────────────────────────────────────

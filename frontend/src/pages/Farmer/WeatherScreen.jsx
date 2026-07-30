@@ -22,7 +22,7 @@ const DAYS_RW = ['Cyu','Kub','Gat','Kane','Gat','Gat','Cya'];
 
 export default function WeatherScreen({ onNavigate, lang, setLang, user }) {
   const t = T[lang];
-  const sector = user?.sector || 'Nyamata';
+  const sector = user?.sector || 'Gashora';
 
   const [current, setCurrent]   = useState(null);
   const [forecast, setForecast] = useState([]);
@@ -240,7 +240,7 @@ export default function WeatherScreen({ onNavigate, lang, setLang, user }) {
           </div>
           {[
             { title: lang==='en'?'Season A (Oct-Jan)':'Igihe A (Ukwakira-Mutarama)', desc: lang==='en'?'Maize, Rice: main season, +10% yields':'Ibigori, Umuceri: igihe gikomeye, umusaruro +10%' },
-            { title: lang==='en'?'Season B (Mar-Jul)':'Igihe B (Werurwe-Nyakanga)',  desc: lang==='en'?'Beans, Vegetables: secondary season':'Ibishyimbo, Imboga: igihe gito' },
+            { title: lang==='en'?'Season B (Mar-Jul)':'Igihe B (Werurwe-Nyakanga)',  desc: lang==='en'?'Rice, Vegetables: secondary season':'Umuceri, Imboga: igihe gito' },
             { title: lang==='en'?'Best planting time':'Igihe cyiza cyo gutera',       desc: lang==='en'?'Oct–Nov (Season A) · Mar–Apr (Season B)':'Ukwakira–Ugushyingo (A) · Werurwe–Mata (B)' },
           ].map(({ title, desc }) => (
             <div key={title} style={{ padding: '8px 0', borderBottom: '1px solid #99f6e4' }}>

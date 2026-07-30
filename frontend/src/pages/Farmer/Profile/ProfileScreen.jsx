@@ -8,7 +8,7 @@ export default function ProfileScreen({ user, onNavigate, onLogout, lang, setLan
   const initials = user.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : "F";
   
   const stats = [
-    { icon: (<i className="bi bi-geo-alt"></i>), label: t.sector, val: user.sector || "Nyamata" },
+    { icon: (<i className="bi bi-geo-alt"></i>), label: t.sector, val: user.sector || "Gashora" },
     { icon: (<i className="bi bi-rulers"></i>), label: lang === "en" ? "Land Size" : "Ubuso", val: `${user.farm_size_ha || 0} ha` }
   ];
 

@@ -82,18 +82,33 @@ def get_user_by_email(email: str) -> dict | None:
     with get_db() as conn:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT f.*, fm.farm_size_are, s.sector_name as sector, fm.sector_id, ROUND(fm.farm_size_are/100, 2) as farm_size_ha
+                SELECT f.*, fm.farm_size_are, s.sector_name as sector, fm.sector_id, 
+                       ROUND(fm.farm_size_are/100, 2) as farm_size_ha,
+                       c.cooperative_name as coop_name, 
+                       c.total_members as coop_total_members,
+                       cl.cell_name,
+                       v.village_name
                 FROM farmers f
                 LEFT JOIN farms fm ON f.farmer_id = fm.farmer_id
                 LEFT JOIN sectors s ON fm.sector_id = s.sector_id
+                LEFT JOIN cooperatives c ON f.cooperative_id = c.cooperative_id
+                LEFT JOIN cells cl ON f.cell_id = cl.cell_id
+                LEFT JOIN villages v ON f.village_id = v.village_id
                 WHERE LOWER(f.email)=LOWER(%s) AND f.is_active=1
                 ORDER BY fm.farm_id ASC LIMIT 1
             """, (email,))
             row = cur.fetchone()
             if row:
-                row['role'] = 'farmer'
                 row['id'] = row['farmer_id']
                 row['name'] = row['full_name']
+                # Set role based on is_cooperative_member flag
+                if row.get('is_cooperative_member') == 1:
+                    row['role'] = 'cooperative'
+                    # Ensure cooperative name is available
+                    if not row.get('cooperative_name') and row.get('coop_name'):
+                        row['cooperative_name'] = row['coop_name']
+                else:
+                    row['role'] = row.get('role', 'farmer')
                 return row
             
             # Check officers
@@ -169,13 +184,33 @@ def check_email_exists(email: str) -> bool:
 def get_farmer(farmer_id: str) -> dict | None:
     with get_db() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM farmers WHERE farmer_id = %s AND is_active = 1", (farmer_id,))
+            cur.execute("""
+                SELECT f.*, 
+                       c.cooperative_name as coop_name, 
+                       c.total_members as coop_total_members,
+                       cl.cell_name,
+                       v.village_name
+                FROM farmers f
+                LEFT JOIN cooperatives c ON f.cooperative_id = c.cooperative_id
+                LEFT JOIN cells cl ON f.cell_id = cl.cell_id
+                LEFT JOIN villages v ON f.village_id = v.village_id
+                WHERE f.farmer_id = %s AND f.is_active = 1
+            """, (farmer_id,))
             row = cur.fetchone()
             if not row: return None
             
             row['farms'] = get_farms(farmer_id)
             row['id'] = farmer_id
-            row['role'] = 'farmer'
+            row['name'] = row.get('full_name')
+            
+            # Set role based on is_cooperative_member flag
+            if row.get('is_cooperative_member') == 1:
+                row['role'] = 'cooperative'
+                # Ensure cooperative name is available
+                if not row.get('cooperative_name') and row.get('coop_name'):
+                    row['cooperative_name'] = row['coop_name']
+            else:
+                row['role'] = row.get('role', 'farmer')
             return row
 
 def register_farmer(data: dict) -> dict:
@@ -1087,3 +1122,311 @@ def get_sector_full_details(sector_id: int) -> dict:
 if __name__ == '__main__':
     print("[tree] Testing MySQL connection...")
     init_db()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GASHORA LOCATION QUERIES (Cell & Village hierarchy)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def get_cells() -> list:
+    """Get all cells in Gashora sector"""
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT cell_id, cell_name 
+                FROM cells 
+                WHERE sector_id = (SELECT sector_id FROM sectors WHERE sector_name='Gashora')
+                ORDER BY cell_name
+            """)
+            return cur.fetchall()
+
+
+def get_villages_by_cell(cell_id: int) -> list:
+    """Get all villages for a specific cell"""
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT village_id, village_name 
+                FROM villages 
+                WHERE cell_id = %s
+                ORDER BY village_name
+            """, (cell_id,))
+            return cur.fetchall()
+
+
+def get_all_gashora_locations() -> dict:
+    """Get complete location hierarchy for Gashora"""
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT c.cell_id, c.cell_name, v.village_id, v.village_name
+                FROM cells c
+                LEFT JOIN villages v ON c.cell_id = v.cell_id
+                WHERE c.sector_id = (SELECT sector_id FROM sectors WHERE sector_name='Gashora')
+                ORDER BY c.cell_name, v.village_name
+            """)
+            rows = cur.fetchall()
+            
+            # Group by cell
+            locations = {}
+            for row in rows:
+                cell_name = row['cell_name']
+                if cell_name not in locations:
+                    locations[cell_name] = {
+                        'cell_id': row['cell_id'],
+                        'cell_name': cell_name,
+                        'villages': []
+                    }
+                if row['village_id']:
+                    locations[cell_name]['villages'].append({
+                        'village_id': row['village_id'],
+                        'village_name': row['village_name']
+                    })
+            
+            return list(locations.values())
+
+
+def register_farmer_with_location(data: dict) -> dict:
+    """
+    Register farmer with Gashora-specific location (cell/village) and cooperative support.
+    Now sets is_active=1 by default (no approval needed).
+    """
+    # Use user-provided password or generate one
+    password = data.get('password') or generate_password()
+    
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            # Generate farmer ID
+            cur.execute("SELECT MAX(CAST(SUBSTRING(farmer_id, 2) AS UNSIGNED)) as current_max FROM farmers")
+            row = cur.fetchone()
+            current_max = row['current_max'] if row and row['current_max'] else 0
+            farmer_id = f"F{current_max + 1:03d}"
+            
+            # Determine role (farmer or cooperative)
+            role = data.get('role', 'farmer')
+            cooperative_id = int(data.get('cooperative_id')) if data.get('cooperative_id') else None
+            is_cooperative_member = 1 if role == 'cooperative' and cooperative_id else 0
+            
+            # Get cooperative name if cooperative_id provided
+            cooperative_name = None
+            if cooperative_id:
+                cur.execute("SELECT cooperative_name FROM cooperatives WHERE cooperative_id=%s", (cooperative_id,))
+                coop = cur.fetchone()
+                cooperative_name = coop['cooperative_name'] if coop else None
+            
+            # Convert cell_id and village_id to integers (may come as strings from frontend)
+            cell_id = None
+            village_id = None
+            try:
+                if data.get('cell_id'):
+                    cell_id = int(data.get('cell_id'))
+            except (ValueError, TypeError):
+                print(f"[WARN] Invalid cell_id: {data.get('cell_id')}")
+            
+            try:
+                if data.get('village_id'):
+                    village_id = int(data.get('village_id'))
+            except (ValueError, TypeError):
+                print(f"[WARN] Invalid village_id: {data.get('village_id')}")
+
+            # Insert farmer (is_active=1 means immediate access)
+            cur.execute("""
+                INSERT INTO farmers (
+                    farmer_id, full_name, email, phone, password_hash, 
+                    cooperative_id, cooperative_name, is_cooperative_member, role, 
+                    cell_id, village_id, is_active
+                )
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,1)
+            """, (farmer_id, data['name'], data['email'], data.get('phone'), password, 
+                  cooperative_id, cooperative_name, is_cooperative_member, role,
+                  cell_id, village_id))
+            
+            # Get Gashora sector_id
+            cur.execute("SELECT sector_id FROM sectors WHERE sector_name='Gashora'")
+            sec = cur.fetchone()
+            sector_id = sec['sector_id'] if sec else 1
+            
+            # Calculate farm size in are
+            farm_size_are = float(data.get('farm_size_ha', 0)) * 100 if data.get('farm_size_ha') else 100.0
+            
+            # Insert farm with cell and village
+            cur.execute("""
+                INSERT INTO farms (farmer_id, farm_name, sector_id, cell_id, village_id, farm_size_are)
+                VALUES (%s,%s,%s,%s,%s,%s)
+            """, (farmer_id, f"{data['name']}'s Farm", sector_id, cell_id, village_id, farm_size_are))
+            
+            conn.commit()
+            
+    res = get_farmer(farmer_id)
+    res['generated_password'] = password
+    return res
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# COOPERATIVE QUERIES
+# ─────────────────────────────────────────────────────────────────────────────
+
+def get_all_cooperatives() -> list:
+    """Get all active cooperatives in Gashora"""
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT c.*, s.sector_name, cl.cell_name,
+                       COUNT(DISTINCT f.farmer_id) as member_count,
+                       ROUND(SUM(fm.farm_size_are)/100, 2) as total_farm_ha
+                FROM cooperatives c
+                LEFT JOIN sectors s ON c.sector_id = s.sector_id
+                LEFT JOIN cells cl ON c.cell_id = cl.cell_id
+                LEFT JOIN farmers f ON c.cooperative_id = f.cooperative_id
+                LEFT JOIN farms fm ON f.farmer_id = fm.farmer_id
+                GROUP BY c.cooperative_id
+                ORDER BY c.cooperative_name
+            """)
+            return cur.fetchall()
+
+
+def create_cooperative(data: dict) -> dict:
+    """Create a new cooperative"""
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            # Generate cooperative ID (auto-increment INT)
+            cur.execute("SELECT MAX(cooperative_id) as current_max FROM cooperatives")
+            row = cur.fetchone()
+            current_max = row['current_max'] if row and row['current_max'] else 0
+            coop_id = current_max + 1
+            
+            # Get Gashora sector_id
+            cur.execute("SELECT sector_id FROM sectors WHERE sector_name='Gashora'")
+            sec = cur.fetchone()
+            sector_id = sec['sector_id'] if sec else 1
+            
+            # Get cell_id if provided
+            cell_id = None
+            if data.get('cell_name'):
+                cur.execute("SELECT cell_id FROM cells WHERE cell_name=%s AND sector_id=%s", 
+                           (data['cell_name'], sector_id))
+                cell_row = cur.fetchone()
+                cell_id = cell_row['cell_id'] if cell_row else None
+            
+            cur.execute("""
+                INSERT INTO cooperatives 
+                (cooperative_id, cooperative_name, sector_id, cell_id, contact_phone, contact_email, total_members)
+                VALUES (%s,%s,%s,%s,%s,%s,%s)
+            """, (coop_id, data['name'], sector_id, cell_id, 
+                  data.get('contact_phone'), data.get('contact_email'), 0))
+            conn.commit()
+            
+            # Return created cooperative
+            cur.execute("SELECT * FROM cooperatives WHERE cooperative_id=%s", (coop_id,))
+            return cur.fetchone()
+
+
+def update_cooperative(cooperative_id: str, data: dict) -> bool:
+    """Update cooperative details"""
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            updates = []
+            params = []
+            
+            if 'name' in data:
+                updates.append("cooperative_name = %s")
+                params.append(data['name'])
+            if 'contact_phone' in data:
+                updates.append("contact_phone = %s")
+                params.append(data['contact_phone'])
+            if 'contact_email' in data:
+                updates.append("contact_email = %s")
+                params.append(data['contact_email'])
+            if 'cell_name' in data:
+                # Get cell_id from cell_name
+                cur.execute("SELECT cell_id FROM cells WHERE cell_name=%s", (data['cell_name'],))
+                cell_row = cur.fetchone()
+                if cell_row:
+                    updates.append("cell_id = %s")
+                    params.append(cell_row['cell_id'])
+            
+            if updates:
+                params.append(cooperative_id)
+                cur.execute(f"UPDATE cooperatives SET {', '.join(updates)} WHERE cooperative_id=%s", tuple(params))
+                conn.commit()
+                return cur.rowcount > 0
+    return False
+
+
+def delete_cooperative(cooperative_id: str) -> bool:
+    """Delete a cooperative (hard delete if no members, otherwise fail)"""
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            # Check if any farmers are members
+            cur.execute("SELECT COUNT(*) as cnt FROM farmers WHERE cooperative_id=%s", (cooperative_id,))
+            count = cur.fetchone()['cnt']
+            
+            if count > 0:
+                return False  # Cannot delete cooperative with active members
+            
+            # Hard delete since we don't have is_active column
+            cur.execute("DELETE FROM cooperatives WHERE cooperative_id=%s", (cooperative_id,))
+            conn.commit()
+            return cur.rowcount > 0
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FARMER APPROVAL QUERIES (Admin Management)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def get_pending_farmers() -> list:
+    """Get all farmers pending approval (is_active=0)"""
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT f.*, fm.farm_size_are, s.sector_name, c.cell_name, v.village_name,
+                       ROUND(fm.farm_size_are/100, 2) as farm_size_ha
+                FROM farmers f
+                LEFT JOIN farms fm ON f.farmer_id = fm.farmer_id
+                LEFT JOIN sectors s ON fm.sector_id = s.sector_id
+                LEFT JOIN cells c ON fm.cell_id = c.cell_id
+                LEFT JOIN villages v ON fm.village_id = v.village_id
+                WHERE f.is_active=0
+                ORDER BY f.created_at DESC
+            """)
+            return cur.fetchall()
+
+
+def get_all_farmers() -> list:
+    """Get all farmers (active and inactive) for admin view"""
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT f.*, fm.farm_size_are, s.sector_name, c.cell_name, v.village_name,
+                       co.cooperative_name,
+                       ROUND(fm.farm_size_are/100, 2) as farm_size_ha
+                FROM farmers f
+                LEFT JOIN farms fm ON f.farmer_id = fm.farmer_id
+                LEFT JOIN sectors s ON fm.sector_id = s.sector_id
+                LEFT JOIN cells c ON fm.cell_id = c.cell_id
+                LEFT JOIN villages v ON fm.village_id = v.village_id
+                LEFT JOIN cooperatives co ON f.cooperative_id = co.cooperative_id
+                ORDER BY f.created_at DESC
+            """)
+            return cur.fetchall()
+
+
+def approve_farmer(farmer_id: str) -> bool:
+    """Approve a pending farmer (set is_active=1)"""
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE farmers SET is_active=1 WHERE farmer_id=%s", (farmer_id,))
+            conn.commit()
+            return cur.rowcount > 0
+
+
+def reject_farmer(farmer_id: str) -> bool:
+    """Reject a pending farmer (permanently delete)"""
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            # Delete associated farms first
+            cur.execute("DELETE FROM farms WHERE farmer_id=%s", (farmer_id,))
+            # Delete farmer
+            cur.execute("DELETE FROM farmers WHERE farmer_id=%s", (farmer_id,))
+            conn.commit()
+            return cur.rowcount > 0

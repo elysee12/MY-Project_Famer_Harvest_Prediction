@@ -9,7 +9,7 @@ export default function AboutAppScreen({ onNavigate, lang, setLang }) {
       <Topbar title={t.aboutApp} onBack={() => onNavigate("profile")} lang={lang} setLang={setLang} />
       <div className="scroll fade-up">
         <div style={{ textAlign: "center", padding: "30px 20px" }}>
-          <div style={{ fontSize: 60, marginBottom: 16 }}>🌾</div>
+          <div style={{ fontSize: 60, marginBottom: 16 }}><i className="bi bi-flower3"></i></div>
           <div style={{ fontSize: 24, fontWeight: 800, color: "var(--g900)" }}>{t.appName}</div>
           <div style={{ fontSize: 14, color: "var(--s500)", marginTop: 4 }}>Version 4.0.2-Stable</div>
           <div style={{ fontSize: 13, color: "var(--s600)", marginTop: 20, lineHeight: 1.6 }}>
@@ -26,7 +26,7 @@ export default function AboutAppScreen({ onNavigate, lang, setLang }) {
           </div>
           <div className="info-row" style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--s100)" }}>
             <span style={{ fontSize: 13, color: "var(--s500)", fontWeight: 700 }} className="info-key">Institution</span>
-            <span style={{ fontSize: 13, fontWeight: 800, color: "var(--s800)" }} className="info-val">Rwanda Polytechnic</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: "var(--s800)" }} className="info-val">UNIVERSITY OF KIGALI</span>
           </div>
           <div className="info-row" style={{ display: "flex", justifyContent: "space-between", padding: "10px 0" }}>
             <span style={{ fontSize: 13, color: "var(--s500)", fontWeight: 700 }} className="info-key">Location</span>

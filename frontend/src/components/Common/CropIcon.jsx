@@ -1,17 +1,17 @@
 import React from "react";
-import { GiCorn, GiPlantSeed, GiBowlOfRice } from "react-icons/gi";
+import { Leaf, Sprout, Droplets } from "lucide-react";
 
-export default function CropIcon({ name, style, size = 24, color = "var(--g600)" }) {
-  const iconStyle = { ...style, fontSize: size, color: color };
+export default function CropIcon({ name, style, size = 24, color = "white" }) {
+  const iconStyle = { ...style, width: size, height: size, color: color };
   
   switch (name) {
     case "Maize":
-      return <GiCorn style={iconStyle} />;
+      return <Leaf style={iconStyle} />;
     case "Beans":
-      return <GiPlantSeed style={iconStyle} />;
+      return <Sprout style={iconStyle} />;
     case "Rice":
-      return <GiBowlOfRice style={iconStyle} />;
+      return <Droplets style={iconStyle} />;
     default:
-      return <GiPlantSeed style={iconStyle} />;
+      return <Sprout style={iconStyle} />;
   }
 }

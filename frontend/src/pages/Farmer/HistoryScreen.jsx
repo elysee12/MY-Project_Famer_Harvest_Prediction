@@ -72,7 +72,7 @@ export default function HistoryScreen({ predictions, onNavigate, lang, setLang, 
           
           const gColor = grade === "Excellent" ? "var(--g600)" : grade === "Good" ? "var(--g500)" : grade === "Average" ? "var(--amber)" : "var(--red)";
           const dateStr = fmtDate(p.created_at || p.timestamp);
-          const revenue = Math.round(parseFloat(p.total_yield_kg || 0) * ({ Maize: 300, Beans: 600, Rice: 500 }[pCrop] || 400));
+          const revenue = Math.round(parseFloat(p.total_yield_kg || 0) * ({ Maize: 300, Rice: 500 }[pCrop] || 400));
           
           return (
             <div 

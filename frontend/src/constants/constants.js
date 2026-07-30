@@ -19,16 +19,28 @@ export const CLIMATE = {
 
 export const MONTHS  = Object.keys(CLIMATE);
 export const SEASONS = ["Season A","Season B"];
-export const SECTORS = ["Gashora","Juru","Kamabuye","Mareba","Mayange","Musenyi","Mwogo","Ngeruka","Ntarama","Nyamata","Nyarugenge","Rilima","Ruhuha","Rweru","Shyara"];
-export const CROPS   = ["Maize","Beans","Rice"];
+export const SECTORS = ["Gashora"]; // Restricted to Gashora Sector only
+export const CROPS   = ["Maize","Rice"]; // Beans removed per requirements
 export const SOILS   = ["Clay","Sandy-Clay","Loam"];
 
-export const CROP_ICON = {Maize:"bi-flower3",Beans:"bi-circle-fill",Rice:"bi-flower2"};
+// Gashora Sector cells (5 cells)
+export const GASHORA_CELLS = ["Biryogo", "Kabuye", "Kagomasi", "Mwendo", "Ramiro"];
+
+// Gashora villages by cell (35 total villages)
+export const GASHORA_LOCATIONS = {
+  "Biryogo": ["Cyahinda", "Gasharu", "Karambi", "Kinyana", "Munanira", "Muvumu", "Rugarama"],
+  "Kabuye": ["Gako", "Kabuye", "Munini", "Murama", "Nyarutovu", "Rugazi", "Ruhunde"],
+  "Kagomasi": ["Gahama", "Kagomasi", "Kayovu", "Kibumbwe", "Mpanda", "Nyagasambu", "Rwimbogo"],
+  "Mwendo": ["Akabungo", "Cyinzovu", "Gashikiri", "Kabuga", "Mwendo", "Nyamirama", "Rwamagana"],
+  "Ramiro": ["Bihembe", "Gashenyi", "Kabeza", "Kamubuga", "Karenge", "Ruhanga", "Rurambi"]
+};
+
+export const CROP_ICON = {Maize:"bi-flower3",Rice:"bi-flower2"};
 
 // CropIcon is defined as a JSX component in individual .jsx files that import CROP_ICON
 export const getCropIconClass = (name) => `bi ${CROP_ICON[name] || 'bi-flower2'}`;
 
-export const CROP_BENCH = {Maize:23.22,Beans:11.91,Rice:36.36};
+export const CROP_BENCH = {Maize:23.22,Rice:36.36};
 
 export const SECTOR_SOIL_TYPE = {
   Gashora   :"Loam",       // pH 6.5 — Good
@@ -112,12 +124,12 @@ export function getSeasonFromMonth(month) {
 }
 
 export const DEMO_USERS = {
-  "F001":{id:"F001",name:"Cesalie Uwimpuhwe",phone:"+250782001001",sector:"Nyamata",farm_size_ha:0.25,farm_size_are:25,crops:["Maize","Beans"],role:"farmer",password:"harvest2024",email:"cesalie@gmail.com"},
+  "F001":{id:"F001",name:"Cesalie Uwimpuhwe",phone:"+250782001001",sector:"Gashora",farm_size_ha:0.25,farm_size_are:25,crops:["Maize","Rice"],role:"farmer",password:"harvest2024",email:"cesalie@gmail.com"},
   "F002":{id:"F002",name:"Jean Pierre Habimana",phone:"+250782002002",sector:"Gashora",farm_size_ha:1.8,farm_size_are:180,crops:["Rice"],role:"farmer",password:"harvest2024"},
-  "F003":{id:"F003",name:"Vestine Mukamana",phone:"+250782003003",sector:"Juru",farm_size_ha:3.2,farm_size_are:320,crops:["Maize","Rice"],role:"farmer",password:"harvest2024"},
-  "A001":{id:"A001",name:"Dr. Pascal Nkurunziza",phone:"+250788100100",sector:"Bugesera",department:"Crop Production",role:"officer",password:"harvest2024"},
-  "A100":{id:"A100",name:"District Agri Officer",phone:"+250788000000",sector:"Bugesera",department:"Administration",role:"district",password:"harvest2024"},
-  "S001":{id:"S001",name:"Marie Mukaso",phone:"+250788222333",sector:"Nyamata",department:"Extension Services",role:"sector",password:"harvest2024",email:"marie@sector.gov.rw"},
+  "F003":{id:"F003",name:"Vestine Mukamana",phone:"+250782003003",sector:"Gashora",farm_size_ha:3.2,farm_size_are:320,crops:["Maize","Rice"],role:"farmer",password:"harvest2024"},
+  "A001":{id:"A001",name:"Dr. Pascal Nkurunziza",phone:"+250788100100",sector:"Gashora",department:"Crop Production",role:"officer",password:"harvest2024"},
+  "A100":{id:"A100",name:"District Agri Officer",phone:"+250788000000",sector:"Gashora",department:"Administration",role:"district",password:"harvest2024"},
+  "S001":{id:"S001",name:"Marie Mukaso",phone:"+250788222333",sector:"Gashora",department:"Extension Services",role:"sector",password:"harvest2024",email:"marie@sector.gov.rw"},
 };
 
 export function simulateOffline({crop,month,season,farmSizeAre,areaPlantedAre,fertilizer,irrigation,soil}) {
@@ -321,7 +333,7 @@ export function fmtDate(dStr) {
 
 export const T = {
   en: {
-    appName:"Harvest Predictor",appSub:"Bugesera District · Rwanda · Smart Farming",
+    appName:"Harvest Predictor",appSub:"Gashora Sector · Bugesera District · Smart Farming",
     login:"Login",register:"Farmer Registration",logout:"Logout",
     farmer:"Farmer",officer:"Agri Officer",
     phone:"Phone / Farmer ID",phoneReg:"Phone Number",password:"Password",confirmPw:"Confirm Password",
@@ -413,7 +425,7 @@ export const T = {
     officerRegistered: "Officer registered! Password sent to email.",
   },
   rw: {
-    appName:"Sisitemu y'Imyaka",appSub:"Akarere ka Bugesera · Rwanda · Ubuhinzi Bw'Ikoranabuhanga",
+    appName:"Sisitemu y'Imyaka",appSub:"Segiteri ya Gashora · Akarere ka Bugesera · Ubuhinzi Bw'Ikoranabuhanga",
     login:"Injira",register:"Kwiyandikisha nk'Umuhinzi",logout:"Sohoka",
     farmer:"Umuhinzi",officer:"Ofisiye w'Ubuhinzi",
     phone:"Telefone / ID",phoneReg:"Telefone",password:"Ijambo ry'Ibanga",confirmPw:"Emeza Ijambo ry'Ibanga",

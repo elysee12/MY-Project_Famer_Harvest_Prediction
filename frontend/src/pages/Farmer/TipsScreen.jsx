@@ -68,26 +68,6 @@ export default function TipsScreen({ onNavigate, lang, setLang, user }) {
           ]
     },
     {
-      icon: <i className="bi bi-egg"></i>,
-      title: lang === "en" ? "Beans Agronomy" : "Ubuhinzi bw'Ibishyimbo",
-      bg: "var(--g50)",
-      bc: "var(--g300)",
-      tc: "var(--g800)",
-      items: lang === "en"
-        ? [
-            "Inoculate seeds with Rhizobium before planting",
-            "Spacing: 40cm × 15cm; seed 3–4cm deep",
-            "Weed at 2 and 4 weeks after germination",
-            "Harvest when 90% of pods are dry"
-          ]
-        : [
-            "Vanga imbuto na Rhizobium mbere yo gutera",
-            "Intambuko: 40cm × 15cm; tera 3–4cm hasi",
-            "Kuramo ibyatsi mu cyumweru cya 2 n'icya 4 nyuma yo kumera",
-            "Sarura igihe 90% by'imigunzu yashyize ku giti yumye"
-          ]
-    },
-    {
       icon: <i className="bi bi-tree"></i>,
       title: lang === "en" ? "Rice Agronomy" : "Ubuhinzi bw'Umuceri",
       bg: "var(--purple-l)",

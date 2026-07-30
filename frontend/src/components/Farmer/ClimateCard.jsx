@@ -64,7 +64,7 @@ export default function ClimateCard({ climate, month, season, lang, isLive = fal
           { val: climate.sunshine + ' h/day',        icon: 'bi-sun-fill',          lbl: lang === 'en' ? 'Sunshine' : 'Izuba' },
           { val: climate.windSpeed + ' km/h',        icon: 'bi-wind',              lbl: lang === 'en' ? 'Wind' : 'Umuyaga' },
           { val: climate.evapotranspiration + ' mm', icon: 'bi-water',             lbl: 'Evapotransp.' },
-          { val: isLive ? '🟢' : '📊',              icon: null,                   lbl: isLive ? 'Live API' : 'Historical' },
+          { val: isLive ? <i className="bi bi-broadcast" style={{color: '#10b981'}}></i> : <i className="bi bi-archive-fill"></i>, icon: null, lbl: isLive ? 'Live API' : 'Historical' },
         ].map(({ val, icon, lbl }, i) => (
           <div key={i} className="climate-item">
             {icon && <i className={`bi ${icon}`} style={{ fontSize: 14, display: 'block', marginBottom: 3, opacity: .85 }}></i>}

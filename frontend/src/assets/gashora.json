@@ -1,0 +1,72 @@
+        {"sectors": [
+            {
+              "type": "SECTORS",
+              "name": "Gashora",
+              "cells": [
+                {
+                  "type": "CELLS",
+                  "name": "Biryogo",
+                  "villages": [
+                    "Bidudu",
+                    "Biryogo",
+                    "Buhoro",
+                    "Gihanama",
+                    "Kagarama",
+                    "Kanyonyomba",
+                    "Karutete",
+                    "Kivugiza",
+                    "Rugunga"
+                  ]
+                },
+                {
+                  "type": "CELLS",
+                  "name": "Kabuye",
+                  "villages": [
+                    "Bidudu",
+                    "Kabuye",
+                    "Karizinge",
+                    "Rwagasiga",
+                    "Rweteto"
+                  ]
+                },
+                {
+                  "type": "CELLS",
+                  "name": "Kagomasi",
+                  "villages": [
+                    "Akagako",
+                    "Kagomasi",
+                    "Kiruhura",
+                    "Kuruganda",
+                    "Runzenze",
+                    "Rushubi"
+                  ]
+                },
+                {
+                  "type": "CELLS",
+                  "name": "Mwendo",
+                  "villages": [
+                    "Gaharwa",
+                    "Gisenyi",
+                    "Kayovu",
+                    "Ruhanga",
+                    "Ruhanura",
+                    "Rutanga"
+                  ]
+                },
+                {
+                  "type": "CELLS",
+                  "name": "Ramiro",
+                  "villages": [
+                    "Dihiro",
+                    "Kagasa I",
+                    "Kagasa II",
+                    "Karusine I",
+                    "Karusine II",
+                    "Migina",
+                    "Munyinya",
+                    "Rweru I",
+                    "Rweru II"
+                  ]
+                }
+              ]
+            },

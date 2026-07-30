@@ -16,18 +16,18 @@ function estimateConfidence(inputs) {
   else if (inputs.pestPressure === 'High') score -= 5.0;
   if (inputs.extensionAccess === 'Yes') score += 1.0;
   if (inputs.creditAccess === 'Yes') score += 0.8;
-  if (['Beans', 'Legume'].includes(inputs.previousCrop)) score += 1.0;
+  if (['Maize', 'Rice', 'Legume'].includes(inputs.previousCrop)) score += 1.0;
   if (inputs.laborAvail === 'Adequate') score += 0.5;
   else if (inputs.laborAvail === 'Limited') score -= 1.5;
   if (['Loam', 'Clay Soil'].includes(inputs.soil)) score += 0.5;
 
   const climate = getClimate(inputs.month || 'October', inputs.season || 'Season A');
-  const cropRainOpt = { Maize: 500, Beans: 400, Rice: 650 }[inputs.crop] || 500;
+  const cropRainOpt = { Maize: 500, Rice: 650 }[inputs.crop] || 500;
   const rainAdequacy = climate.rainfall / cropRainOpt;
   if (rainAdequacy >= 0.9 && rainAdequacy <= 1.2) score += 1.0;
   else if (rainAdequacy < 0.6) score -= 2.0;
 
-  const tempOpt = { Maize: 23, Beans: 22, Rice: 25 }[inputs.crop] || 23;
+  const tempOpt = { Maize: 23, Rice: 25 }[inputs.crop] || 23;
   const tempDev = Math.abs(climate.temperature - tempOpt);
   if (tempDev <= 2) score += 0.8;
   else if (tempDev > 5) score -= 1.2;
@@ -36,7 +36,7 @@ function estimateConfidence(inputs) {
 }
 
 // Harvest days per crop
-const HARVEST_DAYS = { Maize: 90, Beans: 75, Rice: 120 };
+const HARVEST_DAYS = { Maize: 90, Rice: 120 };
 
 // Seed variety effect on yield (multiplier)
 const SEED_EFFECT = { 'Improved': 1.0, 'Hybrid': 1.0, 'Local': 0.85 };
@@ -64,7 +64,7 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
     areaPlantedHa: String(user.farm_size_ha || ""),
     soil: SECTOR_SOIL_TYPE[user.sector || ""] || "Clay Soil",
     farmerCategory: "Medium",
-    previousCrop: "Beans",
+    previousCrop: "Maize",
     laborAvail: "Adequate",
     pestPressure: "Low",
     extensionAccess: "Yes",
@@ -179,7 +179,7 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
       fertilizer_type   : form.fertilizerType || 'DAP',
       irrigation_used   : form.irrigation ? 'Yes' : 'No',
       soil_type         : form.soil,
-      previous_crop     : form.previousCrop || 'Beans',
+      previous_crop     : form.previousCrop || 'Maize',
       labor_availability: form.laborAvail || 'Adequate',
       pest_pressure     : form.pestPressure || 'Low',
       extension_access  : form.extensionAccess || 'Yes',
@@ -283,7 +283,7 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
           season: form.season,
           month: form.month,
           pest: form.pestPressure || "Low",
-          prevCrop: form.previousCrop || "Beans",
+          prevCrop: form.previousCrop || "Maize",
           sector: form.sector,
           labor: form.laborAvail || "Adequate",
           credit: form.creditAccess || "No",
@@ -517,8 +517,8 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
                     <div className="m-hint">
                       <i className="bi bi-info-circle"></i>
                       {lang === 'en'
-                        ? `Recommended for ${form.crop || 'your crop'}: ${form.crop === 'Maize' ? '1.5 kg/are' : form.crop === 'Beans' ? '0.8 kg/are' : '1.8 kg/are'}`
-                        : `Birasabwa kuri ${form.crop || 'igihingwa cyawe'}: ${form.crop === 'Maize' ? '1.5 kg/are' : form.crop === 'Beans' ? '0.8 kg/are' : '1.8 kg/are'}`}
+                        ? `Recommended for ${form.crop || 'your crop'}: ${form.crop === 'Maize' ? '1.5 kg/are' : '1.8 kg/are'}`
+                        : `Birasabwa kuri ${form.crop || 'igihingwa cyawe'}: ${form.crop === 'Maize' ? '1.5 kg/are' : '1.8 kg/are'}`}
                     </div>
                   </div>
                 )}
@@ -554,9 +554,9 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
                 </label>
                 <div className="modern-chip-selector">
                   {[
-                    { val:'Improved', icon:'⭐', label: lang==='en'?'Improved':'Nziza', hint: lang==='en'?'+15% yield':'Umusaruro +15%' },
-                    { val:'Hybrid',   icon:'🌟', label: lang==='en'?'Hybrid':'Hybrid',  hint: lang==='en'?'+20% yield':'Umusaruro +20%' },
-                    { val:'Local',    icon:'🌱', label: lang==='en'?'Local':'Gakondo',   hint: lang==='en'?'Standard':'Isanzwe' },
+                    { val:'Improved', icon: <i className="bi bi-star-fill"></i>, label: lang==='en'?'Improved':'Nziza', hint: lang==='en'?'+15% yield':'Umusaruro +15%' },
+                    { val:'Hybrid',   icon: <i className="bi bi-stars"></i>, label: lang==='en'?'Hybrid':'Hybrid',  hint: lang==='en'?'+20% yield':'Umusaruro +20%' },
+                    { val:'Local',    icon: <i className="bi bi-flower1"></i>, label: lang==='en'?'Local':'Gakondo',   hint: lang==='en'?'Standard':'Isanzwe' },
                   ].map(s => (
                     <button key={s.val}
                       className={`m-chip ${form.seedVariety === s.val ? 'active' : ''}`}
@@ -580,9 +580,9 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
               </label>
               <div className="modern-chip-selector">
                 {[
-                  { val:'Valley',   icon:'🏞️', label: lang==='en'?'Valley':'Ikiyaga',   hint: lang==='en'?'Best for Rice':'Ryiza kuri Umuceri' },
-                  { val:'Flat',     icon:'🌾', label: lang==='en'?'Flat Land':'Gasozi',  hint: lang==='en'?'Good for all':'Byiza kuri byose' },
-                  { val:'Hillside', icon:'⛰️', label: lang==='en'?'Hillside':'Umusozi',  hint: lang==='en'?'Lower yield':'Umusaruro muke' },
+                  { val:'Valley',   icon: <i className="bi bi-water"></i>, label: lang==='en'?'Valley':'Ikiyaga',   hint: lang==='en'?'Best for Rice':'Ryiza kuri Umuceri' },
+                  { val:'Flat',     icon: <i className="bi bi-dash-lg"></i>, label: lang==='en'?'Flat Land':'Gasozi',  hint: lang==='en'?'Good for all':'Byiza kuri byose' },
+                  { val:'Hillside', icon: <i className="bi bi-triangle-fill"></i>, label: lang==='en'?'Hillside':'Umusozi',  hint: lang==='en'?'Lower yield':'Umusaruro muke' },
                 ].map(s => (
                   <button key={s.val}
                     className={`m-chip ${form.terrain === s.val ? 'active' : ''}`}
@@ -600,7 +600,7 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
             <div className="m-fgrp">
               <label className="m-flabel">{lang === "en" ? "Previous Crop" : "Igihingwa Cyahinzwe"}</label>
               <div className="modern-chip-selector">
-                {["Beans", "Maize", "Rice", "Fallow", "Cassava"].map(pc => (
+                {["Maize", "Rice", "Fallow", "Cassava"].map(pc => (
                   <button key={pc} className={`m-chip ${form.previousCrop === pc ? "active" : ""}`} onClick={() => set("previousCrop", pc)}>
                     {pc}
                   </button>
@@ -653,9 +653,9 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
                       {lang==='en' ? 'Climate at Harvest' : 'Ikirere Igihe cyo Gusarura'}
                     </div>
                     <div style={{ fontSize:12, fontWeight:700, color:'#0f172a', marginTop:3 }}>
-                      🌡️ {plantingStatus.harvestClim?.temperature}°C
+                      <i className="bi bi-thermometer-half" style={{ marginRight: 4 }}></i> {plantingStatus.harvestClim?.temperature}°C
                       &nbsp;·&nbsp;
-                      🌧️ {plantingStatus.harvestClim?.rainfall}mm
+                      <i className="bi bi-cloud-rain-fill" style={{ marginRight: 4 }}></i> {plantingStatus.harvestClim?.rainfall}mm
                     </div>
                     <div style={{ fontSize:11, color:'#64748b', marginTop:2 }}>
                       {plantingStatus.harvestMonth} · {plantingStatus.harvestSeason}

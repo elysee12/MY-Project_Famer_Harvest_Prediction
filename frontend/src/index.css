@@ -967,8 +967,27 @@ body {
 .m-crop-card { background: white; border: 1.5px solid var(--s100); border-radius: 18px; padding: 16px 8px; cursor: pointer; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: center; gap: 10px; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
 .m-crop-card:hover { border-color: var(--g300); background: var(--g50); transform: translateY(-2px); }
 .m-crop-card.active { border-color: var(--g500); background: var(--g50); transform: translateY(-2px); box-shadow: 0 8px 16px rgba(22,163,74,0.1); }
-.m-crop-icon { font-size: 32px; transition: transform 0.3s ease; }
-.m-crop-card:hover .m-crop-icon { transform: scale(1.1); }
+.m-crop-icon { 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--g500);
+  color: white;
+  transition: transform 0.3s ease, background 0.3s ease;
+  font-size: 32px;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.2);
+}
+.m-crop-card:hover .m-crop-icon { 
+  transform: scale(1.1);
+  background: var(--g600);
+}
+.m-crop-card.active .m-crop-icon {
+  background: var(--g600);
+  box-shadow: 0 6px 16px rgba(22, 163, 74, 0.3);
+}
 .m-crop-name { font-size: 13px; font-weight: 800; color: var(--s700); }
 .m-crop-check { position: absolute; top: 8px; right: 8px; width: 18px; height: 18px; background: var(--g600); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; }
 

@@ -1,19 +1,85 @@
-﻿import React, { useState } from 'react';
-import { T, SECTORS, API_BASE } from '../../constants/constants';
+﻿import React, { useState, useEffect } from 'react';
+import { T, API_BASE, GASHORA_CELLS } from '../../constants/constants';
 
 export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
   const t = T[lang];
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [sector, setSector] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [role, setRole] = useState("farmer"); // "farmer" or "cooperative"
+  const [cell, setCell] = useState("");
+  const [cellId, setCellId] = useState(null);
+  const [village, setVillage] = useState("");
+  const [villageId, setVillageId] = useState(null);
+  const [cooperativeId, setCooperativeId] = useState("");
   const [farmHa, setFarmHa] = useState("");
   const [agreedTerms, setAgreedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [generatedPw, setGeneratedPw] = useState("");
   const [registeredEmail, setRegisteredEmail] = useState("");
+  
+  // Data from API
+  const [cells, setCells] = useState([]);
+  const [villages, setVillages] = useState([]);
+  const [cooperatives, setCooperatives] = useState([]);
+
+  // Fetch cells on mount
+  useEffect(() => {
+    fetchCells();
+    fetchCooperatives();
+  }, []);
+
+  // Fetch villages when cell changes
+  useEffect(() => {
+    if (cellId) {
+      fetchVillages(cellId);
+    } else {
+      setVillages([]);
+      setVillage("");
+      setVillageId(null);
+    }
+  }, [cellId]);
+
+  const fetchCells = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/cells`);
+      const data = await res.json();
+      if (data.success) {
+        setCells(data.cells || []);
+      }
+    } catch (e) {
+      console.log("Error fetching cells:", e);
+    }
+  };
+
+  const fetchVillages = async (cId) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/villages?cell_id=${cId}`);
+      const data = await res.json();
+      if (data.success) {
+        setVillages(data.villages || []);
+      }
+    } catch (e) {
+      console.log("Error fetching villages:", e);
+    }
+  };
+
+  const fetchCooperatives = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/cooperatives`);
+      const data = await res.json();
+      if (data.success) {
+        setCooperatives(data.cooperatives || []);
+      }
+    } catch (e) {
+      console.log("Error fetching cooperatives:", e);
+    }
+  };
 
   const normalizePhone = (value) => {
     const digits = value.replace(/\D/g, '');
@@ -48,8 +114,19 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
     setError(""); 
     setSuccess("");
 
-    if (!name || !email || !phone || !sector || !farmHa) {
+    // Validation
+    if (!name || !email || !phone || !password || !confirmPassword || !cell || !village || !farmHa) {
       setError(t.allRequired);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError(t.pwMismatch);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError(lang === "en" ? "Password must be at least 6 characters long." : "Ijambo ry'ibanga rigomba kuba rimwe na rimwe 6.");
       return;
     }
 
@@ -74,6 +151,11 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
       return;
     }
 
+    if (role === "cooperative" && !cooperativeId) {
+      setError(lang === "en" ? "Please select a cooperative." : "Hitamo kooperative.");
+      return;
+    }
+
     if (!agreedTerms) {
       setError(t.mustAgree);
       return;
@@ -85,10 +167,13 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
         name, 
         email: email.trim().toLowerCase(), 
         phone: normalizePhone(phone),
-        role: "farmer",
-        sector: sector,
+        password: password,
+        role: role, // "farmer" or "cooperative"
+        sector: "Gashora", // Fixed to Gashora
+        cell_id: cellId ? parseInt(cellId) : null, // Ensure integer
+        village_id: villageId ? parseInt(villageId) : null, // Ensure integer
+        cooperative_id: role === "cooperative" ? (cooperativeId ? parseInt(cooperativeId) : null) : null,
         farm_size_ha: parseFloat(farmHa) || 0,
-        department: ""
       };
 
       const res = await fetch(`${API_BASE}/api/register`, {
@@ -100,24 +185,16 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
       setLoading(false);
 
       if (data.success) {
-        setGeneratedPw(data.generated_password);
         setRegisteredEmail(regData.email);
         setSuccess(
           lang === "rw"
-            ? "Konti yawe yafunguwe neza! 🎉"
-            : "Account created successfully! 🎉"
+            ? "Konti yawe yafunguwe neza! Ubu ushobora kwinjira. 🎉"
+            : "Account created successfully! You can now login. 🎉"
         );
       } else {
         let errMsg = data.error || "Registration failed.";
         if (data.email_error) errMsg += ` (${data.email_error})`;
-        // If backend returned the generated password as fallback, show it briefly
-        if (data.generated_password) {
-          setGeneratedPw(data.generated_password);
-          setRegisteredEmail(regData.email);
-          setSuccess(lang === "rw" ? "Konti yafunguwe ariko email ntiyoherejwe neza. Reba ijambo ry'ibanga hano hasi." : "Account created but email delivery failed. Password is shown below.");
-        } else {
-          setError(errMsg);
-        }
+        setError(errMsg);
       }
     } catch (e) {
       setLoading(false);
@@ -130,12 +207,18 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
     setName("");
     setEmail("");
     setPhone("");
-    setSector("");
+    setPassword("");
+    setConfirmPassword("");
+    setRole("farmer");
+    setCell("");
+    setCellId(null);
+    setVillage("");
+    setVillageId(null);
+    setCooperativeId("");
     setFarmHa("");
     setAgreedTerms(false);
     setError("");
     setSuccess("");
-    setGeneratedPw("");
     setRegisteredEmail("");
   };
 
@@ -175,6 +258,7 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
             </div>
           </div>
         )}
+        
         {success && (
           <div style={{
             background: 'linear-gradient(135deg, #f0fdfa, #ccfbf1)',
@@ -190,10 +274,10 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
               </div>
               <div>
                 <div style={{ fontWeight: 900, fontSize: 18, color: '#0f3d38', margin: 0 }}>
-                  {lang === 'rw' ? 'Konti Yafunguwe Neza! 🎉' : 'Account Created Successfully! 🎉'}
+                  {lang === 'rw' ? 'Konti Yafunguwe Neza! 🎉' : 'Registration Complete! 🎉'}
                 </div>
                 <div style={{ fontSize: 13, color: '#0f766e', margin: 0, fontWeight: 500 }}>
-                  {lang === 'rw' ? 'Murakaza neza muri sisitemu yacu!' : 'Welcome to our system!'}
+                  {lang === 'rw' ? 'Ubu ushobora kwinjira' : 'You Can Now Login'}
                 </div>
               </div>
             </div>
@@ -203,7 +287,7 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
               <i className="bi bi-envelope-check-fill" style={{ color: '#0d9488', fontSize: 24, flexShrink: 0 }}></i>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 4 }}>
-                  {lang === 'rw' ? 'Amakuru yo kwinjira asohotseye kuri' : 'Login credentials sent to'}
+                  {lang === 'rw' ? 'Email yawe' : 'Your registered email'}
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 900, color: '#047857', wordBreak: 'break-all' }}>
                   {registeredEmail || email}
@@ -221,29 +305,21 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
                 <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                   <div style={{ width: 28, height: 28, background: '#0d9488', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0, fontSize: 14 }}>1</div>
                   <div style={{ fontSize: 13, color: '#0f766e', lineHeight: 1.5, flex: 1 }}>
-                    {lang === 'rw' ? 'Reba email yawe (ibiri n\'inyandiko y\'akorante)' : 'Check your email for your login credentials'}
+                    {lang === 'rw' ? 'Kanda buto ya "Komeza ku kwinjira" hano hasi' : 'Click the "Go to Login" button below'}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                   <div style={{ width: 28, height: 28, background: '#0d9488', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0, fontSize: 14 }}>2</div>
                   <div style={{ fontSize: 13, color: '#0f766e', lineHeight: 1.5, flex: 1 }}>
-                    {lang === 'rw' ? 'Niba email itaboneka, reba spam/junk folder' : 'If you don\'t see it, check your spam/junk folder'}
+                    {lang === 'rw' ? 'Injiza email n\'ijambo ry\'ibanga wakoresheje' : 'Enter your email and password'}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                   <div style={{ width: 28, height: 28, background: '#0d9488', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0, fontSize: 14 }}>3</div>
                   <div style={{ fontSize: 13, color: '#0f766e', lineHeight: 1.5, flex: 1 }}>
-                    {lang === 'rw' ? 'Koresha email n\'ijambo ry\'ibanga kugirango winjire' : 'Use your email and password to log in'}
+                    {lang === 'rw' ? 'Tangira gukoresha sisitemu' : 'Start using the system immediately'}
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Tips Box */}
-            <div style={{ background: '#fff3cd', border: '1px solid #ffc107', borderRadius: 10, padding: '12px 14px', marginBottom: 18, display: 'flex', gap: 10 }}>
-              <i className="bi bi-info-circle-fill" style={{ color: '#ff8c00', fontSize: 18, flexShrink: 0, marginTop: 2 }}></i>
-              <div style={{ fontSize: 12, color: '#664d03', lineHeight: 1.6 }}>
-                {lang === 'rw' ? 'Ijambo ry\'ibanga ntiyoherejwegore kugihe cyose. Reba email yawe ahubwo neza.' : 'Your password has been sent. Please check your email inbox carefully, including all tabs.'}
               </div>
             </div>
           </div>
@@ -251,6 +327,35 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
 
         {!success && (
           <>
+        {/* Role Selection */}
+        <div className="fgrp">
+          <label className="flabel"><i className="bi bi-person-badge"></i> {lang === "en" ? "Registration Type" : "Ubwoko bwo Kwiyandikisha"} *</label>
+          <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+              <input 
+                type="radio" 
+                name="role" 
+                value="farmer" 
+                checked={role === "farmer"} 
+                onChange={(e) => setRole(e.target.value)}
+                style={{ accentColor: "var(--g700)" }}
+              />
+              <span style={{ fontSize: 14 }}>{lang === "en" ? "Standard Farmer" : "Umuhinzi Usanzwe"}</span>
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+              <input 
+                type="radio" 
+                name="role" 
+                value="cooperative" 
+                checked={role === "cooperative"} 
+                onChange={(e) => setRole(e.target.value)}
+                style={{ accentColor: "var(--g700)" }}
+              />
+              <span style={{ fontSize: 14 }}>{lang === "en" ? "Cooperative Member" : "Umunyamuryango wa Kooperative"}</span>
+            </label>
+          </div>
+        </div>
+
         <div className="fgrp">
           <label className="flabel"><i className="bi bi-person"></i> {t.fullName} *</label>
           <input 
@@ -266,7 +371,7 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
           <input 
             className="academic-input" 
             type="email" 
-            placeholder="user@example.com" 
+            placeholder="user@gmail.com" 
             value={email} 
             onChange={e => setEmail(e.target.value)} 
             onBlur={e => checkEmail(e.target.value)}
@@ -284,13 +389,122 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
           />
         </div>
 
+        {/* Password Fields with Eye Icon */}
         <div className="fgrp">
-          <label className="flabel"><i className="bi bi-geo-alt"></i> {lang === "en" ? "Main Farm Sector" : "Segiteri y'Umurenge"} *</label>
-          <select className="academic-input" value={sector} onChange={e => setSector(e.target.value)}>
-            <option value="">{lang === "rw" ? "Hitamo…" : "Select…"}</option>
-            {SECTORS.map(sec => <option key={sec} value={sec}>{sec}</option>)}
+          <label className="flabel"><i className="bi bi-key"></i> {t.password} *</label>
+          <div style={{ position: "relative" }}>
+            <input 
+              className="academic-input" 
+              type={showPassword ? "text" : "password"}
+              placeholder={lang === "en" ? "Enter password (min 6 characters)" : "Injiza ijambo ry'ibanga (nibura 6)"}
+              value={password} 
+              onChange={e => setPassword(e.target.value)}
+              style={{ paddingRight: "40px" }}
+            />
+            <i 
+              className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"}`}
+              onClick={() => setShowPassword(!showPassword)}
+              style={{
+                position: "absolute",
+                right: "12px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                cursor: "pointer",
+                color: "var(--s600)",
+                fontSize: "18px"
+              }}
+            ></i>
+          </div>
+        </div>
+
+        <div className="fgrp">
+          <label className="flabel"><i className="bi bi-key-fill"></i> {t.confirmPw} *</label>
+          <div style={{ position: "relative" }}>
+            <input 
+              className="academic-input" 
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder={lang === "en" ? "Re-enter password" : "Ongera winjize ijambo ry'ibanga"}
+              value={confirmPassword} 
+              onChange={e => setConfirmPassword(e.target.value)}
+              style={{ paddingRight: "40px" }}
+            />
+            <i 
+              className={`bi ${showConfirmPassword ? "bi-eye-slash" : "bi-eye"}`}
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              style={{
+                position: "absolute",
+                right: "12px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                cursor: "pointer",
+                color: "var(--s600)",
+                fontSize: "18px"
+              }}
+            ></i>
+          </div>
+        </div>
+
+        {/* Sector (locked to Gashora) */}
+        <div className="fgrp">
+          <label className="flabel"><i className="bi bi-geo-alt"></i> {lang === "en" ? "Sector" : "Segiteri"}</label>
+          <div className="academic-input" style={{ background: "#f3f4f6", cursor: "not-allowed", color: "#6b7280" }}>
+            Gashora
+          </div>
+        </div>
+
+        {/* Cell Dropdown */}
+        <div className="fgrp">
+          <label className="flabel"><i className="bi bi-geo"></i> {lang === "en" ? "Cell" : "Akagari"} *</label>
+          <select 
+            className="academic-input" 
+            value={cell} 
+            onChange={e => {
+              const selectedCell = cells.find(c => c.cell_name === e.target.value);
+              setCell(e.target.value);
+              setCellId(selectedCell ? selectedCell.cell_id : null);
+            }}
+          >
+            <option value="">{lang === "rw" ? "Hitamo akagari…" : "Select cell…"}</option>
+            {cells.map(c => <option key={c.cell_id} value={c.cell_name}>{c.cell_name}</option>)}
           </select>
         </div>
+
+        {/* Village Dropdown (cascading) */}
+        <div className="fgrp">
+          <label className="flabel"><i className="bi bi-house"></i> {lang === "en" ? "Village" : "Umudugudu"} *</label>
+          <select 
+            className="academic-input" 
+            value={village} 
+            onChange={e => {
+              const selectedVillage = villages.find(v => v.village_name === e.target.value);
+              setVillage(e.target.value);
+              setVillageId(selectedVillage ? selectedVillage.village_id : null);
+            }}
+            disabled={!cell}
+          >
+            <option value="">{lang === "rw" ? "Hitamo umudugudu…" : "Select village…"}</option>
+            {villages.map(v => <option key={v.village_id} value={v.village_name}>{v.village_name}</option>)}
+          </select>
+        </div>
+
+        {/* Cooperative Dropdown (only if role = cooperative) */}
+        {role === "cooperative" && (
+          <div className="fgrp">
+            <label className="flabel"><i className="bi bi-people"></i> {lang === "en" ? "Cooperative" : "Kooperative"} *</label>
+            <select 
+              className="academic-input" 
+              value={cooperativeId} 
+              onChange={e => setCooperativeId(e.target.value)}
+            >
+              <option value="">{lang === "rw" ? "Hitamo kooperative…" : "Select cooperative…"}</option>
+              {cooperatives.map(coop => (
+                <option key={coop.cooperative_id} value={coop.cooperative_id}>
+                  {coop.cooperative_name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="fgrp">
           <label className="flabel"><i className="bi bi-rulers"></i> {t.farmSizeHa} *</label>
@@ -320,12 +534,11 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
           </>
         )}
 
-        {!generatedPw ? (
+        {!success ? (
           <button
             className="auth-btn"
             onClick={handleRegister}
-            disabled={loading || !name || !email || !phone || !sector || !farmHa}
-            style={{ display: success ? 'none' : 'block' }}
+            disabled={loading}
           >
             {loading ? <><div className="spin" />{t.creatingAccount}</> : <><i className="bi bi-person-plus"></i> {t.registerBtn}</>}
           </button>
@@ -347,7 +560,7 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
         </div>
 
         <div style={{ textAlign: "center", marginTop: 24, paddingTop: 16, fontSize: 11, color: "var(--s500)", fontWeight: 500 }}>
-          🌾 {lang === "rw" ? "Urunyobwe rw'Ubuhinzi bwa Bugesera" : "Bugesera Agricultural System"} · Rwanda Polytechnic
+          <i className="bi bi-check2-circle" style={{ marginRight: 4 }}></i> {lang === "rw" ? "Sisitemu y'Ubuhinzi bwa Gashora" : "Gashora Agricultural System"} · UNIVERSITY OF KIGALI
         </div>
       </div>
 
@@ -373,4 +586,3 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
     </div>
   );
 }
-

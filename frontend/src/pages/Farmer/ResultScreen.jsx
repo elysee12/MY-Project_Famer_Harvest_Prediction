@@ -7,8 +7,8 @@ export default function ResultScreen({ result, onNavigate, onSave, history = [],
   if (!result) return null;
 
   const SEASON_BENCH_RESULT = {
-    "Season A": { Maize: 23.86, Beans: 12.17, Rice: 37.96 },
-    "Season B": { Maize: 22.59, Beans: 11.65, Rice: 34.77 },
+    "Season A": { Maize: 23.86, Rice: 37.96 },
+    "Season B": { Maize: 22.59, Rice: 34.77 },
   };
 
   const seasonAvg = (SEASON_BENCH_RESULT[result.season] || SEASON_BENCH_RESULT["Season A"])[result.crop]

@@ -6,6 +6,7 @@ import SectorFarmers from './SectorFarmers';
 import SectorReports from './SectorReports';
 import FarmerDetailView from './FarmerDetailView';
 import PredictionDetailView from './PredictionDetailView';
+import ActivityAnalytics from './ActivityAnalytics';
 
 export default function SectorOfficerDashboard({ user, onLogout, lang, setLang }) {
   const t = T[lang];
@@ -19,7 +20,7 @@ export default function SectorOfficerDashboard({ user, onLogout, lang, setLang }
   const [officerMessages, setOfficerMessages] = useState([]);
   const [unreadMessages, setUnreadMessages] = useState(0); // { farmerId, msg }
 
-  const sectorName = user.sector || "Nyamata";
+  const sectorName = user.sector || "Gashora";
   const sectorId = user.sector_id || (SECTORS.indexOf(sectorName) + 1);
 
   const fetchDashboard = () => {
@@ -31,7 +32,7 @@ export default function SectorOfficerDashboard({ user, onLogout, lang, setLang }
         setLoading(false);
         setDashData({
           farmer_count: 8,
-          crop_data: { Maize: { avg_yield_kg_are: 23.4 }, Beans: { avg_yield_kg_are: 12.1 }, Rice: { avg_yield_kg_are: 35.8 } },
+          crop_data: { Maize: { avg_yield_kg_are: 23.4 }, Rice: { avg_yield_kg_are: 35.8 } },
           recent_preds: [],
           seasons: [{ season: "Season A", avg_yield: 22.8, count: 5 }, { season: "Season B", avg_yield: 21.2, count: 3 }]
         });
@@ -131,7 +132,7 @@ export default function SectorOfficerDashboard({ user, onLogout, lang, setLang }
                 const bench = CROP_BENCH[crop] || 20;
                 const pct = Math.min((val / 50) * 100, 100);
                 const vs = val ? ((val - bench) / bench * 100).toFixed(1) : 0;
-                const col = { Maize: '#f59e0b', Beans: '#2dd4bf', Rice: '#0d9488' }[crop] || '#2dd4bf';
+                const col = { Maize: '#f59e0b', Rice: '#0d9488' }[crop] || '#0d9488';
                 return (
                   <div key={crop} className="so-crop-bar-row">
                     <div className="so-crop-bar-top">
@@ -288,6 +289,13 @@ export default function SectorOfficerDashboard({ user, onLogout, lang, setLang }
             setSelectedPred={setSelectedPred}
             lang={lang}
             dashData={dashData}
+          />
+        );
+      case 'activity':
+        return (
+          <ActivityAnalytics
+            user={user}
+            lang={lang}
           />
         );
       case 'reports':
@@ -492,7 +500,7 @@ function SectorPredictionsList({ sectorName, sectorId, setSelectedPred, lang, da
           />
         </div>
         <div className="so-list-filters">
-          {['All', 'Maize', 'Beans', 'Rice'].map(c => (
+          {['All', 'Maize', 'Rice'].map(c => (
             <button key={c} className={`so-filter-chip ${cropFilter === c ? 'act' : ''}`} onClick={() => setCropFilter(c)}>
               {c === 'All' ? (lang === 'en' ? 'All Crops' : 'Ibihingwa Byose') : c}
             </button>
@@ -546,8 +554,8 @@ function SectorPredictionsList({ sectorName, sectorId, setSelectedPred, lang, da
                   </td>
                   <td>
                     <span className="so-crop-tag" style={{
-                      background: { Maize: '#fef3c7', Beans: '#ccfbf1', Rice: '#ccfbf1' }[p.crop || p.crop_type] || '#f1f5f9',
-                      color: { Maize: '#92400e', Beans: '#0f766e', Rice: '#0f766e' }[p.crop || p.crop_type] || '#334155'
+                      background: { Maize: '#fef3c7', Rice: '#ccfbf1' }[p.crop || p.crop_type] || '#f1f5f9',
+                      color: { Maize: '#92400e', Rice: '#0f766e' }[p.crop || p.crop_type] || '#334155'
                     }}>
                       {p.crop || p.crop_type}
                     </span>

@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
+import { AlertTriangle, Package } from 'lucide-react';
 import { T, API_BASE, fmtDate } from '../../constants/constants';
 
 export default function SectorReports({ user, dashData, lang }) {
@@ -68,7 +69,7 @@ export default function SectorReports({ user, dashData, lang }) {
     const avg = total > 0
       ? (allPreds.reduce((s, p) => s + parseFloat(p.yield_per_are_kg || 0), 0) / total).toFixed(2)
       : '—';
-    const crops = [...new Set(allPreds.map(p => p.crop || p.crop_type).filter(Boolean))].join(', ') || 'Maize, Beans';
+    const crops = [...new Set(allPreds.map(p => p.crop || p.crop_type).filter(Boolean))].join(', ') || 'Maize, Rice';
     const farmerCount = dashData?.farmer_count || 0;
     const date = new Date().toLocaleDateString('en-RW', { day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -275,10 +276,10 @@ export default function SectorReports({ user, dashData, lang }) {
             <div className="so-tips-title"><i className="bi bi-lightbulb-fill"></i> {lang === 'en' ? 'Report Writing Tips' : 'Inama zo Kwandika Raporo'}</div>
             <div className="so-tips-grid">
               {[
-                { icon: '📊', tip: lang === 'en' ? 'Include actual yield data and farmer counts' : 'Shyiramo amakuru y\'umusaruro nyaryo n\'umubare w\'abahinzi' },
-                { icon: '🌱', tip: lang === 'en' ? 'Mention any crop diseases or pest outbreaks' : 'Vuga indwara z\'ibihingwa cyangwa udukoko twabonwe' },
-                { icon: '💧', tip: lang === 'en' ? 'Report on irrigation and water availability' : 'Vuga ku kuhira no kuboneka kw\'amazi' },
-                { icon: '📋', tip: lang === 'en' ? 'List specific support needed from District' : 'Vuga ubufasha bwihariye busabwa ku Karere' },
+                { icon: <i className="bi bi-bar-chart-fill"></i>, tip: lang === 'en' ? 'Include actual yield data and farmer counts' : 'Shyiramo amakuru y\'umusaruro nyaryo n\'umubare w\'abahinzi' },
+                { icon: <i className="bi bi-flower1"></i>, tip: lang === 'en' ? 'Mention any crop diseases or pest outbreaks' : 'Vuga indwara z\'ibihingwa cyangwa udukoko twabonwe' },
+                { icon: <i className="bi bi-droplet-fill"></i>, tip: lang === 'en' ? 'Report on irrigation and water availability' : 'Vuga ku kuhira no kuboneka kw\'amazi' },
+                { icon: <i className="bi bi-clipboard-check-fill"></i>, tip: lang === 'en' ? 'List specific support needed from District' : 'Vuga ubufasha bwihariye busabwa ku Karere' },
               ].map((tip, i) => (
                 <div key={i} className="so-tip-item">
                   <span>{tip.icon}</span>
@@ -324,7 +325,6 @@ export default function SectorReports({ user, dashData, lang }) {
                 {[
                   { val: 'All Farmers', icon: 'bi-people-fill', label: lang === 'en' ? 'All Farmers' : 'Abahinzi Bose' },
                   { val: 'Maize Farmers', icon: 'bi-flower3', label: lang === 'en' ? 'Maize Farmers' : 'Abahinzi ba Ibigori' },
-                  { val: 'Beans Farmers', icon: 'bi-circle-fill', label: lang === 'en' ? 'Beans Farmers' : 'Abahinzi ba Ibishyimbo' },
                   { val: 'Rice Farmers', icon: 'bi-flower2', label: lang === 'en' ? 'Rice Farmers' : 'Abahinzi ba Umuceri' },
                 ].map(({ val, icon, label }) => (
                   <button
@@ -378,25 +378,25 @@ export default function SectorReports({ user, dashData, lang }) {
             <div className="so-templates-grid">
               {[
                 {
-                  icon: '🌱', title: lang === 'en' ? 'Season A Planting' : 'Gutera Season A',
+                  icon: <i className="bi bi-flower1"></i>, title: lang === 'en' ? 'Season A Planting' : 'Gutera Season A',
                   msg: lang === 'en'
                     ? 'Season A planting window is now open. Prepare your land and apply DAP fertilizer (0.5 kg/are) at planting. Ensure seeds are certified and treated before planting.'
                     : 'Igihe cyo gutera Season A cyafunguwe. Tegura ubutaka bwawe kandi ushyire ifumbire ya DAP (0.5 kg/are) igihe utera. Menya ko imbuto zawe zemewe kandi zafashwe mbere yo gutera.'
                 },
                 {
-                  icon: '🐛', title: lang === 'en' ? 'Pest Alert' : 'Impururu y\'Udukoko',
+                  icon: <AlertTriangle size={20} color="#dc2626" />, title: lang === 'en' ? 'Pest Alert' : 'Impururu y\'Udukoko',
                   msg: lang === 'en'
                     ? 'Pest activity has been detected in the sector. Scout your fields every 5 days. If you see Fall Armyworm or aphids, contact the sector office immediately for free pesticide support.'
                     : 'Udukoko twabonwe mu murenge. Genzura imirima yawe buri minsi 5. Niba ubonye Fall Armyworm cyangwa aphids, baza ibiro by\'umurenge vuba kugira ngo ubone pesticide ubuntu.'
                 },
                 {
-                  icon: '💧', title: lang === 'en' ? 'Irrigation Reminder' : 'Igihe cyo Kuhira',
+                  icon: <i className="bi bi-droplet-fill"></i>, title: lang === 'en' ? 'Irrigation Reminder' : 'Igihe cyo Kuhira',
                   msg: lang === 'en'
                     ? 'Rainfall has been below average this week. Farmers with irrigation access should apply 4-6cm of water per week, especially during the flowering stage, to protect yields.'
                     : 'Imvura yari munsi y\'impuzandengo iki cyumweru. Abahinzi bafite uburyo bwo kuhira bagomba gukoresha 4-6cm y\'amazi buri cyumweru, cyane cyane mu gihe cy\'uburabyo, kugira ngo barinde umusaruro.'
                 },
                 {
-                  icon: '📦', title: lang === 'en' ? 'Harvest & Storage' : 'Gusarura no Kubika',
+                  icon: <Package size={20} color="#3b82f6" />, title: lang === 'en' ? 'Harvest & Storage' : 'Gusarura no Kubika',
                   msg: lang === 'en'
                     ? 'Harvest season is approaching. Prepare hermetic storage bags now. Dry your grain to below 13% moisture before storing to prevent aflatoxin and pest damage. Contact the cooperative for market prices.'
                     : 'Igihe cy\'isarura kigeze. Tegura imifuko itinjiza umwuka ubu. Yubika imyaka munsi ya 13% y\'ubumidure mbere yo kuyibika kugira ngo wirinde aflatoxin n\'udukoko. Baza koperative kugira ngo ubone ibiciro by\'isoko.'

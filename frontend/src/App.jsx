@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { API_BASE } from "./constants/constants";
+import { X } from "lucide-react";
 
 // ── Auth & Public Pages ───────────────────────────────────────────────────────
 import WelcomePage        from "./pages/Home/WelcomePage";
@@ -10,6 +11,7 @@ import ForgotPassword     from "./pages/Auth/ForgotPassword";
 
 // ── Farmer Pages ──────────────────────────────────────────────────────────────
 import FarmerDashboard    from "./pages/Farmer/FarmerDashboard";
+import CooperativeDashboard from "./pages/Farmer/CooperativeDashboard";
 import PredictScreen      from "./pages/Farmer/PredictScreen";
 import ResultScreen       from "./pages/Farmer/ResultScreen";
 import HistoryScreen      from "./pages/Farmer/HistoryScreen";
@@ -78,8 +80,9 @@ function GlobalStyle() {
 }
 
 const dashboardPathForRole = (role) => {
-  if (role === "district") return "/district";
+  if (role === "admin" || role === "district") return "/admin";
   if (role === "sector" || role === "officer") return "/sector";
+  if (role === "cooperative") return "/cooperative";
   return "/farmer";
 };
 
@@ -117,6 +120,11 @@ export default function App() {
   const closeAuthModal = () => setAuthMode("welcome");
 
   const handleLogin = (u) => {
+    console.log('🔵 HANDLE LOGIN CALLED');
+    console.log('🔵 User object received:', JSON.stringify(u, null, 2));
+    console.log('🔵 User role:', u.role);
+    console.log('🔵 Is cooperative?:', u.role === 'cooperative');
+    
     setUser(u);
     setAuthMode("welcome");
     setScreen("dashboard");
@@ -131,9 +139,9 @@ export default function App() {
     window.history.replaceState(null, "", dashboardPathForRole(user.role));
   }, [user]);
 
-  // ── Fetch farmer data after login ──────────────────────────────────────────
+  // ── Fetch farmer/cooperative data after login ──────────────────────────────────────────
   useEffect(() => {
-    if (!user || user.role !== "farmer") return;
+    if (!user || (user.role !== "farmer" && user.role !== "cooperative")) return;
 
     // Fetch prediction history
     fetch(`${API_BASE}/api/predictions?farmer_id=${user.id}`)
@@ -197,7 +205,7 @@ export default function App() {
           <div className="auth-modal-overlay" onClick={closeAuthModal}>
             <div className="auth-modal-panel" onClick={(e) => e.stopPropagation()}>
               <button type="button" className="auth-modal-close" aria-label="Close" onClick={closeAuthModal}>
-                <i className="bi bi-x-lg"></i>
+                <X size={20} />
               </button>
               {authMode === "login" && (
                 <Login
@@ -246,8 +254,8 @@ export default function App() {
     );
   }
 
-  // ── District Admin ────────────────────────────────────────────────────────
-  if (user.role === "district") {
+  // ── System Admin ──────────────────────────────────────────────────────────
+  if (user.role === "admin" || user.role === "district") {
     return (
       <>
         <GlobalStyle />
@@ -278,12 +286,18 @@ export default function App() {
     );
   }
 
-  // ── Farmer Dashboard ─────────────────────────────────────────────────────
+  // ── Farmer/Cooperative Dashboard ─────────────────────────────────────────────────────
   const renderScreen = () => {
     switch (screen) {
       case "dashboard":
+        // Use CooperativeDashboard for cooperative members, FarmerDashboard for farmers
+        console.log('🟢 RENDERING DASHBOARD');
+        console.log('🟢 User role:', user?.role);
+        console.log('🟢 Should show cooperative?:', user?.role === "cooperative");
+        const DashboardComponent = user.role === "cooperative" ? CooperativeDashboard : FarmerDashboard;
+        console.log('🟢 Dashboard component:', DashboardComponent === CooperativeDashboard ? 'COOPERATIVE (Blue)' : 'FARMER (Green)');
         return (
-          <FarmerDashboard
+          <DashboardComponent
             user={user}
             onNavigate={nav}
             history={history}
