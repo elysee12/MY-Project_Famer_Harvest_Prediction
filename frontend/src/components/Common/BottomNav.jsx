@@ -1,9 +1,9 @@
 import React from 'react';
 import { T } from '../../constants/constants';
 import { 
-  Home, Target, Clock, CloudSun, Book,
-  Gauge, Users, Clipboard, FileText, MapPin, UserPlus, Activity
-} from 'lucide-react';
+  LuHouse as Home, LuTarget as Target, LuClock as Clock, LuCloudSun as CloudSun, LuBook as Book,
+  LuGauge as Gauge, LuUsers as Users, LuClipboard as Clipboard, LuFileText as FileText, LuMapPin as MapPin, LuUserPlus as UserPlus, LuActivity as Activity
+} from 'react-icons/lu';
 
 export default function BottomNav({ current, onNavigate, lang, user }) {
   const t = T[lang];

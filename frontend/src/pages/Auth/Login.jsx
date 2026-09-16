@@ -32,10 +32,32 @@ export default function Login({ onLogin, lang, setLang, onRegister, onForgot, on
       });
       const data = await res.json();
       setLoading(false);
+      
       if (data.success) {
         onLogin(data.user);
       } else {
-        setError(data.error || t.invalidCreds);
+        // Handle specific error types
+        if (data.error === 'pending_approval') {
+          // Show detailed pending approval message
+          const coopName = data.cooperative_name || 'the cooperative';
+          setError(
+            lang === 'en'
+              ? `Your membership application to ${coopName} is pending approval. You will receive an email once the cooperative leader reviews your application. Please wait for approval before attempting to login.`
+              : `Ikibazo cyanyu cyo kuba umunyamuryango wa ${coopName} cyategereje kwemezwa. Uzahamagara email iyo umuyobozi wa koperative asuzuma ikibazo. Tegereza kwemezwa mbere yo kugerageza kwinjira.`
+          );
+        } else if (data.error === 'application_rejected') {
+          // Show detailed rejection message
+          const coopName = data.cooperative_name || 'the cooperative';
+          const reason = data.rejection_reason || 'Your application was not approved.';
+          setError(
+            lang === 'en'
+              ? `Your application to join ${coopName} was rejected. Reason: ${reason}. Please contact the cooperative leader for more information.`
+              : `Ikibazo cyanyu cyo kwinjira mu ${coopName} cyanzwe. Impamvu: ${reason}. Mwahamagara umuyobozi wa koperative kugira ngo mubone amakuru y'inyongera.`
+          );
+        } else {
+          // Generic error message
+          setError(data.message || data.error || t.invalidCreds);
+        }
       }
     } catch (_) {
       setLoading(false);
@@ -153,7 +175,7 @@ export default function Login({ onLogin, lang, setLang, onRegister, onForgot, on
             Sector Officer (Gashora)
           </button>
           <button onClick={() => { setEmail("pascal@district.gov.rw"); setPw("harvest2024"); }} className="demo-pill">
-            District Admin
+            System Admin
           </button>
         </div>
       </div>

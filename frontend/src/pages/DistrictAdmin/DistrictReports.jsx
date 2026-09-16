@@ -14,7 +14,9 @@ export default function DistrictReports({ user, lang }) {
 
   const fetchReports = async () => {
     try {
-      const res  = await fetch(`${API_BASE}/api/reports?officer_id=${user.id}&role=district`);
+      // Use 'district' role for both admin and district officer types
+      const role = user.officer_type === 'admin' ? 'admin' : 'district';
+      const res  = await fetch(`${API_BASE}/api/reports?officer_id=${user.id}&role=${role}`);
       const data = await res.json();
       if (data.success) setReports(data.reports);
     } catch {

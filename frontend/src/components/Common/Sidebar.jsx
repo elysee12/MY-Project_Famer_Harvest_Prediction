@@ -2,10 +2,10 @@ import React from 'react';
 import { T } from '../../constants/constants';
 import { LogoWithText } from './Logo';
 import { 
-  Home, Target, Clock, CloudSun, Book, Bell, User,
-  Gauge, MapPin, FileText, Shield, Users, Clipboard,
-  BellRing, Building2, LogOut, Activity
-} from 'lucide-react';
+  LuHouse as Home, LuTarget as Target, LuClock as Clock, LuCloudSun as CloudSun, LuBook as Book, LuBell as Bell, LuUser as User,
+  LuGauge as Gauge, LuMapPin as MapPin, LuFileText as FileText, LuShield as Shield, LuUsers as Users, LuClipboard as Clipboard,
+  LuBellRing as BellRing, LuBuilding2 as Building2, LuLogOut as LogOut, LuActivity as Activity
+} from 'react-icons/lu';
 
 export default function Sidebar({ current, onNavigate, user, onLogout, lang, setLang, unreadMessages = 0 }) {
   const t = T[lang];
@@ -14,12 +14,44 @@ export default function Sidebar({ current, onNavigate, user, onLogout, lang, set
 
   const isFarmer = user.role === 'farmer';
   const isCooperative = user.role === 'cooperative';
+  const isCooperativeLeader = user.role === 'cooperative_leader';
   const isSector = user.role === 'sector' || user.role === 'officer';
   const isAdmin = user.role === 'admin' || user.role === 'district'; // Support both 'admin' and legacy 'district'
 
   // Render navigation links based on user role
   const renderNavLinks = () => {
-    if (isFarmer || isCooperative) {
+    if (isCooperativeLeader) {
+      // Cooperative Leader navigation
+      const leaderItems = [
+        { id: "overview", icon: <Home size={18} />, label: lang === 'en' ? 'Overview' : 'Mwanya' },
+        { id: "members", icon: <Users size={18} />, label: lang === 'en' ? 'Members' : 'Abanyamuryango' },
+        { id: "pending", icon: <Clock size={18} />, label: lang === 'en' ? 'Pending Requests' : 'Ibisabwa' },
+        { id: "season-config", icon: <Target size={18} />, label: lang === 'en' ? 'Season Configuration' : 'Ibihe by\'Ihinga' },
+        { id: "history", icon: <Clock size={18} />, label: lang === 'en' ? 'History' : 'Amateka' },
+        { id: "weather", icon: <CloudSun size={18} />, label: lang === 'en' ? 'Weather' : 'Ikirere' },
+        { id: "tips", icon: <Book size={18} />, label: lang === 'en' ? 'Tips & Advice' : 'Inama' },
+        { id: "notifications", icon: <Bell size={18} />, label: lang === 'en' ? 'Notifications' : 'Imenyesha' },
+        { id: "reports", icon: <FileText size={18} />, label: lang === 'en' ? 'Reports' : 'Raporo' },
+      ];
+      
+      return (
+        <>
+          <div className="sn-section">Dashboard</div>
+          {leaderItems.map(item => (
+            <button key={item.id} className={`sn-item ${current === item.id ? "act" : ""}`} onClick={() => onNavigate(item.id)}>
+              <span className="sn-icon">{item.icon}</span>
+              <span className="sn-label">{item.label}</span>
+              {current === item.id && <span className="sn-badge">●</span>}
+            </button>
+          ))}
+          <div className="sn-section" style={{ marginTop: 8 }}>Account</div>
+          <button className={`sn-item ${current === "profile" ? "act" : ""}`} onClick={() => onNavigate("profile")}>
+            <span className="sn-icon"><User size={18} /></span>
+            <span className="sn-label">{lang === 'en' ? 'My Profile' : 'Umwirondoro'}</span>
+          </button>
+        </>
+      );
+    } else if (isFarmer || isCooperative) {
       const navItems = [
         { id: "dashboard", icon: <Home size={18} />, label: t.home },
         { id: "predict", icon: <Target size={18} />, label: t.predict },
@@ -64,6 +96,11 @@ export default function Sidebar({ current, onNavigate, user, onLogout, lang, set
               {current === item.id && <span className="sn-badge">●</span>}
             </button>
           ))}
+          <div className="sn-section" style={{ marginTop: 8 }}>Account</div>
+          <button className={`sn-item ${current === "profile" ? "act" : ""}`} onClick={() => onNavigate("profile")}>
+            <span className="sn-icon"><User size={18} /></span>
+            <span className="sn-label">{t.myProfile || "Profile"}</span>
+          </button>
         </>
       );
     } else if (isSector) {
@@ -98,6 +135,11 @@ export default function Sidebar({ current, onNavigate, user, onLogout, lang, set
               {current === item.id && !item.badge && <span className="sn-badge">●</span>}
             </button>
           ))}
+          <div className="sn-section" style={{ marginTop: 8 }}>Account</div>
+          <button className={`sn-item ${current === "profile" ? "act" : ""}`} onClick={() => onNavigate("profile")}>
+            <span className="sn-icon"><User size={18} /></span>
+            <span className="sn-label">{t.myProfile || "Profile"}</span>
+          </button>
         </>
       );
     } else {

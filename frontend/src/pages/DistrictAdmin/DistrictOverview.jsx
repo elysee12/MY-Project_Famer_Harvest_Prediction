@@ -1,9 +1,19 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { API_BASE, CROP_BENCH, fmtDate } from '../../constants/constants';
+import { 
+  LuTrophy, 
+  LuCircleCheck, 
+  LuTriangleAlert, 
+  LuCircleAlert,
+  LuMessageSquare,
+  LuCalendar,
+  LuUser,
+  LuTrash2
+} from 'react-icons/lu';
 
-const CROP_COLORS = { Maize: '#f59e0b', Beans: '#2dd4bf', Rice: '#0d9488' };
-const CROP_BG    = { Maize: '#fef3c7', Beans: '#ccfbf1', Rice: '#ccfbf1' };
-const CROP_TEXT  = { Maize: '#92400e', Beans: '#0f766e', Rice: '#0f766e' };
+const CROP_COLORS = { Maize: '#f59e0b', Rice: '#0d9488' };
+const CROP_BG    = { Maize: '#fef3c7', Rice: '#ccfbf1' };
+const CROP_TEXT  = { Maize: '#92400e', Rice: '#0f766e' };
 
 function perfStatus(val, crop) {
   const bench = CROP_BENCH[crop] || 20;
@@ -116,12 +126,12 @@ export default function DistrictOverview({ dashData, loading, underperforming, s
   return (
     <div className="fade-up">
       {/* ── KPI Row ── */}
-      <div className="so-kpi-grid" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
+      <div className="so-kpi-grid">
         {[
-          { icon: 'bi-houses-fill', color: '#ccfbf1', iconColor: '#0d9488', val: 15, lbl: lang==='en'?'Total Sectors':'Imirenge Yose', action: lang==='en'?'Explore':'Sura', onAction: ()=>setTab('sectors') },
+          { icon: 'bi-houses-fill', color: '#ccfbf1', iconColor: '#0d9488', val: 1, lbl: lang==='en'?'Total Sectors':'Imirenge Yose', action: lang==='en'?'Explore':'Sura', onAction: ()=>setTab('sectors') },
           { icon: 'bi-people-fill', color: '#ccfbf1', iconColor: '#0d9488', val: totalFarmers, lbl: lang==='en'?'Total Farmers':'Abahinzi Bose' },
           { icon: 'bi-clipboard2-data-fill', color: '#fef3c7', iconColor: '#d97706', val: totalPreds, lbl: lang==='en'?'Total Predictions':'Ibisobanuro Byose' },
-          { icon: 'bi-exclamation-triangle-fill', color: '#fee2e2', iconColor: '#dc2626', val: underperforming.length, lbl: lang==='en'?'Underperforming':'Abari Munsi', alert: underperforming.length > 0 },
+          { icon: 'bi-exclamation-triangle-fill', color: '#fee2e2', iconColor: '#dc2626', val: underperforming.length, lbl: lang==='en'?'Under-performing':'Abari Munsi', alert: underperforming.length > 0 },
         ].map((k,i) => (
           <div key={i} className={`so-kpi-card ${k.alert?'so-kpi-alert':''}`}>
             <div className="so-kpi-icon" style={{ background: k.color, color: k.iconColor }}><i className={`bi ${k.icon}`}></i></div>
@@ -204,9 +214,16 @@ export default function DistrictOverview({ dashData, loading, underperforming, s
           <span><i className="bi bi-megaphone-fill"></i> {lang==='en'?'Send Advice to Sector Agri Officers':'Ohereza Inama ku Bagri Officer ba Segiteri'}</span>
         </div>
 
-        <div className="da-advice-layout">
+        <div className="da-advice-layout" style={{
+          display: 'flex',
+          gap: 24,
+          alignItems: 'flex-start'
+        }}>
           {/* Left: Form */}
-          <div className="da-advice-form">
+          <div className="da-advice-form" style={{
+            flex: '1 1 auto',
+            minWidth: '400px'
+          }}>
             {adviceStatus && (
               <div className={`so-status-alert ${adviceStatus.type}`} style={{ marginBottom:14 }}>
                 <i className={`bi ${adviceStatus.type==='ok'?'bi-check-circle-fill':'bi-exclamation-circle-fill'}`}></i> {adviceStatus.msg}
@@ -242,59 +259,431 @@ export default function DistrictOverview({ dashData, loading, underperforming, s
             </button>
 
             <div style={{ marginTop: 30 }}>
-              <h3 style={{ marginBottom: 14, fontSize: 14, fontWeight: 700 }}>{lang === 'en' ? 'Sent Advice' : 'Inama Zohererejwe'}</h3>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                marginBottom: 16 
+              }}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 10 
+                }}>
+                  <div style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    background: '#e0f2fe',
+                    color: '#0891b2',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <LuMessageSquare size={18} />
+                  </div>
+                  <h3 style={{ 
+                    margin: 0, 
+                    fontSize: 16, 
+                    fontWeight: 800,
+                    color: '#0f172a'
+                  }}>
+                    {lang === 'en' ? 'Sent Advice History' : 'Inama Zohererejwe'}
+                  </h3>
+                </div>
+                {sentAdvice.length > 0 && (
+                  <span style={{
+                    background: '#e0f2fe',
+                    color: '#0891b2',
+                    padding: '4px 12px',
+                    borderRadius: 99,
+                    fontSize: 12,
+                    fontWeight: 700
+                  }}>
+                    {sentAdvice.length} {lang === 'en' ? 'advice' : 'inama'}
+                  </span>
+                )}
+              </div>
+
               {loadingSentAdvice ? (
-                <div className="so-loading-list">
-                  {[1,2].map((n) => <div key={n} className="so-skeleton-row" style={{ height: 50 }} />)}
+                <div style={{ 
+                  background: 'white',
+                  borderRadius: 12,
+                  padding: 20,
+                  border: '1px solid #e2e8f0'
+                }}>
+                  {[1,2,3].map((n) => (
+                    <div key={n} style={{ 
+                      height: 60, 
+                      background: '#f1f5f9',
+                      borderRadius: 8,
+                      marginBottom: n < 3 ? 12 : 0,
+                      animation: 'pulse 1.5s ease-in-out infinite'
+                    }} />
+                  ))}
                 </div>
               ) : sentAdvice.length === 0 ? (
-                <div className="so-empty-mini">{lang === 'en' ? 'No advice sent yet.' : 'Nta nama yoherejwe.'}</div>
-              ) : (
-                sentAdvice.slice(0, 3).map((advice, index) => (
-                  <div key={index} className="so-report-history-item" style={{ marginBottom: 12 }}>
-                    <div className="so-report-history-icon"><i className="bi bi-chat-left-text-fill"></i></div>
-                    <div className="so-report-history-info">
-                      <div className="so-report-history-title">{advice.subject || (lang === 'en' ? 'District Advisory' : 'Inama y\'Akarere')}</div>
-                      <div className="so-report-history-meta">
-                        <span><i className="bi bi-calendar3"></i> {fmtDate(advice.created_at)}</span>
-                        <span><i className="bi bi-person-badge"></i> {advice.recipient_name || advice.recipient_officer_id || (lang === 'en' ? 'Sector Officer' : 'Ofisiye wa Segiteri')}</span>
-                      </div>
-                      <div className="so-report-history-preview">{(advice.message || '').slice(0, 100)}…</div>
-                    </div>
-                    <button className="btn btn-secondary" style={{ fontSize: 12, padding: '6px 10px', height: 'fit-content' }} onClick={() => handleRevokeAdvice(advice.advice_id || advice.id)}>
-                      {lang === 'en' ? 'Revoke' : 'Kuraho'}
-                    </button>
+                <div style={{
+                  background: 'white',
+                  border: '2px dashed #e2e8f0',
+                  borderRadius: 12,
+                  padding: '40px 20px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: '50%',
+                    background: '#f1f5f9',
+                    color: '#94a3b8',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 16px'
+                  }}>
+                    <LuMessageSquare size={24} />
                   </div>
-                ))
+                  <div style={{ 
+                    fontSize: 14, 
+                    color: '#64748b',
+                    fontWeight: 600
+                  }}>
+                    {lang === 'en' ? 'No advice sent yet' : 'Nta nama yoherejwe'}
+                  </div>
+                  <div style={{ 
+                    fontSize: 12, 
+                    color: '#94a3b8',
+                    marginTop: 6
+                  }}>
+                    {lang === 'en' ? 'Sent advice will appear here' : 'Inama zohererejwe zizagaragara hano'}
+                  </div>
+                </div>
+              ) : (
+                <div style={{
+                  background: 'white',
+                  borderRadius: 12,
+                  border: '1px solid #e2e8f0',
+                  overflow: 'hidden'
+                }}>
+                  <table style={{ 
+                    width: '100%', 
+                    borderCollapse: 'collapse' 
+                  }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc' }}>
+                        <th style={{ 
+                          padding: '14px 16px', 
+                          textAlign: 'left',
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: '#64748b',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          borderBottom: '2px solid #e2e8f0'
+                        }}>
+                          {lang === 'en' ? 'Subject' : 'Ingingo'}
+                        </th>
+                        <th style={{ 
+                          padding: '14px 16px', 
+                          textAlign: 'left',
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: '#64748b',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          borderBottom: '2px solid #e2e8f0'
+                        }}>
+                          {lang === 'en' ? 'Recipient' : 'Uwakiriye'}
+                        </th>
+                        <th style={{ 
+                          padding: '14px 16px', 
+                          textAlign: 'left',
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: '#64748b',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          borderBottom: '2px solid #e2e8f0'
+                        }}>
+                          {lang === 'en' ? 'Date' : 'Itariki'}
+                        </th>
+                        <th style={{ 
+                          padding: '14px 16px', 
+                          textAlign: 'left',
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: '#64748b',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          borderBottom: '2px solid #e2e8f0'
+                        }}>
+                          {lang === 'en' ? 'Message Preview' : 'Ubutumwa'}
+                        </th>
+                        <th style={{ 
+                          padding: '14px 16px', 
+                          textAlign: 'center',
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: '#64748b',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          borderBottom: '2px solid #e2e8f0',
+                          width: 100
+                        }}>
+                          {lang === 'en' ? 'Action' : 'Igikorwa'}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sentAdvice.map((advice, index) => (
+                        <tr 
+                          key={index}
+                          style={{ 
+                            borderBottom: index < sentAdvice.length - 1 ? '1px solid #f1f5f9' : 'none',
+                            transition: 'background 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
+                          onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                        >
+                          <td style={{ padding: '16px' }}>
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 10
+                            }}>
+                              <div style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: 8,
+                                background: '#e0f2fe',
+                                color: '#0891b2',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0
+                              }}>
+                                <LuMessageSquare size={16} />
+                              </div>
+                              <div>
+                                <div style={{
+                                  fontSize: 13,
+                                  fontWeight: 700,
+                                  color: '#0f172a',
+                                  marginBottom: 2
+                                }}>
+                                  {advice.subject || (lang === 'en' ? 'District Advisory' : 'Inama y\'Akarere')}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: '16px' }}>
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8
+                            }}>
+                              <div style={{
+                                width: 32,
+                                height: 32,
+                                borderRadius: 8,
+                                background: '#f0fdf4',
+                                color: '#059669',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0
+                              }}>
+                                <LuUser size={14} />
+                              </div>
+                              <span style={{
+                                fontSize: 13,
+                                fontWeight: 600,
+                                color: '#334155'
+                              }}>
+                                {advice.recipient_name || advice.recipient_officer_id || (lang === 'en' ? 'Sector Officer' : 'Ofisiye')}
+                              </span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '16px' }}>
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8
+                            }}>
+                              <LuCalendar size={14} color="#94a3b8" />
+                              <span style={{
+                                fontSize: 12,
+                                fontWeight: 600,
+                                color: '#64748b'
+                              }}>
+                                {fmtDate(advice.created_at)}
+                              </span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '16px' }}>
+                            <div style={{
+                              fontSize: 12,
+                              color: '#64748b',
+                              fontWeight: 500,
+                              lineHeight: 1.5,
+                              maxWidth: 300,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {advice.message || '—'}
+                            </div>
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center' }}>
+                            <button 
+                              onClick={() => handleRevokeAdvice(advice.advice_id || advice.id)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                padding: '8px 14px',
+                                background: '#fef2f2',
+                                border: '1px solid #fecaca',
+                                borderRadius: 8,
+                                color: '#dc2626',
+                                fontSize: 12,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = '#fee2e2';
+                                e.currentTarget.style.borderColor = '#dc2626';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = '#fef2f2';
+                                e.currentTarget.style.borderColor = '#fecaca';
+                              }}
+                            >
+                              <LuTrash2 size={14} />
+                              {lang === 'en' ? 'Revoke' : 'Kuraho'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           </div>
 
           {/* Right: Quick templates based on performance */}
-          <div className="da-advice-templates">
-            <div className="da-templates-title"><i className="bi bi-lightning-fill"></i> {lang==='en'?'Smart Templates (based on performance)':'Inyandiko Zihuse (bigendeye ku bikorwa)'}</div>
-            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+          <div className="da-advice-templates" style={{
+            flex: '0 0 380px',
+            maxWidth: '380px',
+            minWidth: '300px'
+          }}>
+            <div className="da-templates-title" style={{
+              fontSize: 14,
+              fontWeight: 800,
+              color: '#0f172a',
+              marginBottom: 16,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8
+            }}>
+              <i className="bi bi-lightning-fill" style={{ color: '#f59e0b' }}></i> 
+              {lang==='en'?'Smart Templates (based on performance)':'Inyandiko Zihuse (bigendeye ku bikorwa)'}
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
               {[
-                { icon: <i className="bi bi-trophy-fill"></i>, perf:'excellent', title: lang==='en'?'Excellent Performance':'Ibikorwa Byiza Cyane',
+                { 
+                  icon: <LuTrophy size={22} />, 
+                  iconColor: '#f59e0b',
+                  iconBg: '#fef3c7',
+                  perf:'excellent', 
+                  title: lang==='en'?'Excellent Performance':'Ibikorwa Byiza Cyane',
                   msg: lang==='en'
                     ? 'Congratulations on the excellent crop performance this season. Your sector is among the top performers in Bugesera District. Please document your best practices and share them at the next district agricultural meeting.'
-                    : 'Murakaza neza ku bikorwa byiza cyane by\'ibihingwa uyu mwaka. Umurenge wanyu uri mu mirenge ikora neza cyane mu Karere ka Bugesera. Mwandike uburyo bwiza bwakoreshejwe kandi musangire mu nama ikurikira y\'ubuhinzi y\'akarere.' },
-                { icon: <i className="bi bi-check-circle-fill"></i>, perf:'good', title: lang==='en'?'Good Performance — Push Higher':'Ibikorwa Byiza — Komeza Imbere',
+                    : 'Murakaza neza ku bikorwa byiza cyane by\'ibihingwa uyu mwaka. Umurenge wanyu uri mu mirenge ikora neza cyane mu Karere ka Bugesera. Mwandike uburyo bwiza bwakoreshejwe kandi musangire mu nama ikurikira y\'ubuhinzi y\'akarere.' 
+                },
+                { 
+                  icon: <LuCircleCheck size={22} />, 
+                  iconColor: '#059669',
+                  iconBg: '#d1fae5',
+                  perf:'good', 
+                  title: lang==='en'?'Good Performance — Push Higher':'Ibikorwa Byiza — Komeza Imbere',
                   msg: lang==='en'
                     ? 'Good crop performance this season. To reach the excellent category, encourage farmers to apply DAP fertilizer at 0.5 kg/are at planting and ensure irrigation during dry spells. Target: +15% yield improvement next season.'
-                    : 'Ibikorwa byiza by\'ibihingwa uyu mwaka. Kugira ngo mugere mu cyiciro cy\'ibikorwa byiza cyane, shishikariza abahinzi gukoresha ifumbire ya DAP 0.5 kg/are igihe bateye kandi mwirinde amazi mu gihe cy\'izuba. Intego: kongera umusaruro 15% mu gihe gikurikira.' },
-                { icon: <i className="bi bi-exclamation-triangle-fill"></i>, perf:'average', title: lang==='en'?'Below Average — Action Needed':'Munsi y\'Impuzandengo — Gira Icyo Ukora',
+                    : 'Ibikorwa byiza by\'ibihingwa uyu mwaka. Kugira ngo mugere mu cyiciro cy\'ibikorwa byiza cyane, shishikariza abahinzi gukoresha ifumbire ya DAP 0.5 kg/are igihe bateye kandi mwirinde amazi mu gihe cy\'izuba. Intego: kongera umusaruro 15% mu gihe gikurikira.' 
+                },
+                { 
+                  icon: <LuTriangleAlert size={22} />, 
+                  iconColor: '#f59e0b',
+                  iconBg: '#fef3c7',
+                  perf:'average', 
+                  title: lang==='en'?'Below Average — Action Needed':'Munsi y\'Impuzandengo — Gira Icyo Ukora',
                   msg: lang==='en'
                     ? 'Crop yields in your sector are below district average this season. Please conduct field visits this week to identify root causes. Key actions: (1) Soil pH testing, (2) Verify fertilizer application rates, (3) Check for pest/disease pressure. Report findings within 7 days.'
-                    : 'Umusaruro w\'ibihingwa mu murenge wanyu uri munsi y\'impuzandengo y\'akarere uyu mwaka. Mwende mu mirima iki cyumweru kugira ngo mubashe kumenya impamvu nyayo. Ibikorwa by\'ingenzi: (1) Gupima pH y\'ubutaka, (2) Kugenzura uburyo bwo gushyira ifumbire, (3) Kureba udukoko/indwara. Mwohereze raporo mu minsi 7.' },
-                { icon: <i className="bi bi-x-octagon-fill"></i>, perf:'critical', title: lang==='en'?'Critical — Urgent Intervention':'Byihutirwa — Gufasha Vuba',
+                    : 'Umusaruro w\'ibihingwa mu murenge wanyu uri munsi y\'impuzandengo y\'akarere uyu mwaka. Mwende mu mirima iki cyumweru kugira ngo mubashe kumenya impamvu nyayo. Ibikorwa by\'ingenzi: (1) Gupima pH y\'ubutaka, (2) Kugenzura uburyo bwo gushyira ifumbire, (3) Kureba udukoko/indwara. Mwohereze raporo mu minsi 7.' 
+                },
+                { 
+                  icon: <LuCircleAlert size={22} />, 
+                  iconColor: '#dc2626',
+                  iconBg: '#fee2e2',
+                  perf:'critical', 
+                  title: lang==='en'?'Critical — Urgent Intervention':'Byihutirwa — Gufasha Vuba',
                   msg: lang==='en'
                     ? 'URGENT: Crop yields in your sector are critically below district average. Immediate action required: (1) Emergency field assessment this week, (2) Identify affected farms and provide emergency fertilizer support, (3) Submit detailed report to district office within 3 days. District support team will visit next week.'
-                    : 'BYIHUTIRWA: Umusaruro w\'ibihingwa mu murenge wanyu uri hasi cyane munsi y\'impuzandengo y\'akarere. Ibikorwa byihutirwa: (1) Gusuzuma imirima vuba iki cyumweru, (2) Kumenya amasambu akoresheje nabi kandi mubatere ifumbire y\'ubufasha, (3) Mwohereze raporo irambuye ku biro by\'akarere mu minsi 3. Itsinda ry\'ubufasha ry\'akarere rizaza iki cyumweru gikurikira.' },
+                    : 'BYIHUTIRWA: Umusaruro w\'ibihingwa mu murenge wanyu uri hasi cyane munsi y\'impuzandengo y\'akarere. Ibikorwa byihutirwa: (1) Gusuzuma imirima vuba iki cyumweru, (2) Kumenya amasambu akoresheje nabi kandi mubatere ifumbire y\'ubufasha, (3) Mwohereze raporo irambuye ku biro by\'akarere mu minsi 3. Itsinda ry\'ubufasha ry\'akarere rizaza iki cyumweru gikurikira.' 
+                },
               ].map((tpl, i) => (
-                <button key={i} className="da-template-btn" onClick={() => setAdviceMsg(tpl.msg)}>
-                  <span style={{ fontSize:20 }}>{tpl.icon}</span>
-                  <span style={{ fontSize:12, fontWeight:700, color:'var(--s700)', textAlign:'left' }}>{tpl.title}</span>
+                <button 
+                  key={i} 
+                  className="da-template-btn" 
+                  onClick={() => setAdviceMsg(tpl.msg)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 14,
+                    padding: '14px 16px',
+                    background: 'white',
+                    border: `2px solid ${tpl.iconBg}`,
+                    borderRadius: 12,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    textAlign: 'left'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = tpl.iconBg;
+                    e.currentTarget.style.borderColor = tpl.iconColor;
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = `0 4px 12px ${tpl.iconColor}30`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'white';
+                    e.currentTarget.style.borderColor = tpl.iconBg;
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  <div style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 12,
+                    background: tpl.iconBg,
+                    color: tpl.iconColor,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    {tpl.icon}
+                  </div>
+                  <span style={{ 
+                    fontSize: 13, 
+                    fontWeight: 700, 
+                    color: '#0f172a',
+                    flex: 1
+                  }}>
+                    {tpl.title}
+                  </span>
                 </button>
               ))}
             </div>
@@ -566,7 +955,7 @@ export default function DistrictOverview({ dashData, loading, underperforming, s
       {/* ── Recent Predictions ── */}
       <div className="da-section-card">
         <div className="da-section-hd">
-          <span><i className="bi bi-clock-history"></i> {lang==='en'?'Recent District Predictions':'Ibisobanuro bya Vuba mu Karere'}</span>
+          <span><i className="bi bi-clock-history"></i> {lang==='en'?'Recent Gashora Sector Predictions':'Ibisobanuro bya Vuba mu Gashora'}</span>
           <button className="so-section-link" onClick={()=>setTab('sectors')}>{lang==='en'?'View by Sector →':'Reba kuri Segiteri →'}</button>
         </div>
         {(dashData?.recent_preds||[]).length === 0 ? (
@@ -582,15 +971,35 @@ export default function DistrictOverview({ dashData, loading, underperforming, s
                 <th>{lang==='en'?'Date':'Itariki'}</th>
               </tr></thead>
               <tbody>
-                {(dashData?.recent_preds||[]).slice(0,8).map((p,i) => (
-                  <tr key={i} className="da-perf-tr" onClick={()=>setSelectedPred(p)}>
-                    <td style={{ fontWeight:700 }}>{p.farmer_name||p.farmer_id}</td>
-                    <td><span className="so-crop-tag" style={{ background: CROP_BG[p.crop||p.crop_type]||'#f1f5f9', color: CROP_TEXT[p.crop||p.crop_type]||'#334155' }}>{p.crop||p.crop_type}</span></td>
-                    <td className="so-td-muted">{p.sector||p.sector_name}</td>
-                    <td className="so-td-yield">{parseFloat(p.yield_per_are_kg||0).toFixed(1)} <small>kg/a</small></td>
-                    <td className="so-td-muted">{fmtDate(p.timestamp||p.created_at)}</td>
-                  </tr>
-                ))}
+                {(() => {
+                  // Group predictions by unique farmer to avoid duplicates
+                  const farmerMap = new Map();
+                  
+                  (dashData?.recent_preds||[]).forEach((p) => {
+                    const farmerId = p.farmer_id || p.farmer_name;
+                    if (!farmerMap.has(farmerId) || new Date(p.timestamp || p.created_at) > new Date(farmerMap.get(farmerId).timestamp || farmerMap.get(farmerId).created_at)) {
+                      // Keep the most recent prediction for each farmer
+                      farmerMap.set(farmerId, p);
+                    }
+                  });
+                  
+                  const uniqueFarmers = Array.from(farmerMap.values());
+                  
+                  return uniqueFarmers.slice(0,8).map((p,i) => {
+                    // Fix sector name - normalize "Gashabora" to "Gashora"
+                    const sectorName = (p.sector || p.sector_name || '').replace(/gashabora/i, 'Gashora');
+                    
+                    return (
+                      <tr key={`${p.farmer_id||p.farmer_name}-${i}`} className="da-perf-tr" onClick={()=>setSelectedFarmerId(p.farmer_id || p.farmer_name)}>
+                        <td className="da-farmer-name">{p.farmer_name||p.farmer_id}</td>
+                        <td><span className="so-crop-tag" style={{ background: CROP_BG[p.crop||p.crop_type]||'#f1f5f9', color: CROP_TEXT[p.crop||p.crop_type]||'#334155' }}>{p.crop||p.crop_type}</span></td>
+                        <td className="so-td-muted">{sectorName}</td>
+                        <td className="so-td-yield">{parseFloat(p.yield_per_are_kg||0).toFixed(1)} <small>kg/a</small></td>
+                        <td className="so-td-muted">{fmtDate(p.timestamp||p.created_at)}</td>
+                      </tr>
+                    );
+                  });
+                })()}
               </tbody>
             </table>
           </div>

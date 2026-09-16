@@ -92,9 +92,51 @@ export default function ActivityAnalytics({ user, lang }) {
     }));
   };
 
-  const exportData = () => {
-    // Export functionality
-    console.log('Exporting data...');
+  const exportData = async () => {
+    try {
+      setLoading(true);
+      
+      // Prepare export parameters
+      const params = new URLSearchParams();
+      if (filters.cell !== 'all') params.append('cell_id', filters.cell);
+      if (filters.village !== 'all') params.append('village_id', filters.village);
+      if (filters.crop !== 'all') params.append('crop', filters.crop);
+      if (filters.farmerType !== 'all') params.append('farmer_type', filters.farmerType);
+      params.append('format', 'csv'); // Can also support 'pdf'
+      
+      // Make request to export endpoint
+      const response = await fetch(`${API_BASE}/api/sector/export-analytics?${params}`, {
+        method: 'GET'
+      });
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        
+        // Generate filename with current date and filters
+        const date = new Date().toISOString().split('T')[0];
+        const cropFilter = filters.crop !== 'all' ? `_${filters.crop}` : '';
+        const cellFilter = filters.cell !== 'all' ? `_${filters.cell}` : '';
+        a.download = `Activity_Analytics_${date}${cropFilter}${cellFilter}.csv`;
+        
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        console.log('Export completed successfully');
+      } else {
+        console.error('Export failed:', response.statusText);
+        alert(lang === 'en' ? 'Export failed. Please try again.' : 'Kubiramo byanze. Gerageza ukundi.');
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      alert(lang === 'en' ? 'Export failed. Please try again.' : 'Kubiramo byanze. Gerageza ukundi.');
+    }
+    setLoading(false);
   };
 
   return (
@@ -627,6 +669,25 @@ function getPerformanceBadge(performance) {
 
 // RecentActivitiesCard Component
 function RecentActivitiesCard({ activities, lang }) {
+  // Deduplicate activities by farmer to show each farmer only once
+  const uniqueFarmerActivities = () => {
+    if (!activities || activities.length === 0) return [];
+    
+    const farmerMap = new Map();
+    
+    activities.forEach((activity) => {
+      const farmerId = activity.farmerId || activity.farmerName;
+      if (!farmerMap.has(farmerId) || new Date(activity.timestamp) > new Date(farmerMap.get(farmerId).timestamp)) {
+        // Keep the most recent activity for each farmer
+        farmerMap.set(farmerId, activity);
+      }
+    });
+    
+    return Array.from(farmerMap.values());
+  };
+
+  const uniqueActivities = uniqueFarmerActivities();
+
   return (
     <div style={{
       background: 'white',
@@ -637,23 +698,46 @@ function RecentActivitiesCard({ activities, lang }) {
       <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
         <Activity size={20} color="#0d9488" />
         {lang === 'en' ? 'Recent Activities' : 'Ibikorwa bya Vuba'}
+        {uniqueActivities.length > 0 && (
+          <span style={{
+            marginLeft: 8,
+            fontSize: 12,
+            padding: '2px 8px',
+            background: '#f0fdfa',
+            color: '#0d9488',
+            borderRadius: 4,
+            fontWeight: 600
+          }}>
+            {uniqueActivities.length} {lang === 'en' ? 'farmers' : 'abahinzi'}
+          </span>
+        )}
       </h3>
       
-      {(!activities || activities.length === 0) ? (
+      {uniqueActivities.length === 0 ? (
         <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>
           {lang === 'en' ? 'No recent activities' : 'Nta bikorwa bya vuba'}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {activities.slice(0, 10).map((activity, i) => (
-            <div key={i} style={{
+          {uniqueActivities.slice(0, 10).map((activity, i) => (
+            <div key={`${activity.farmerId || activity.farmerName}-${i}`} style={{
               display: 'flex',
               alignItems: 'center',
               gap: 12,
               padding: 12,
               background: '#f8fafc',
               borderRadius: 8,
-              border: '1px solid #f1f5f9'
+              border: '1px solid #f1f5f9',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = '#f0fdfa';
+              e.currentTarget.style.borderColor = '#ccfbf1';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = '#f8fafc';
+              e.currentTarget.style.borderColor = '#f1f5f9';
             }}>
               <div style={{
                 width: 40,
@@ -671,7 +755,7 @@ function RecentActivitiesCard({ activities, lang }) {
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', marginBottom: 2 }}>
-                  {activity.farmerName}
+                  <span style={{ color: '#0d9488' }}>{activity.farmerName}</span>
                   {activity.farmerType === 'cooperative' && (
                     <span style={{
                       marginLeft: 8,

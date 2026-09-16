@@ -35,6 +35,28 @@ DB_CONFIG = {
 }
 
 
+def normalize_role_from_user_row(row: dict) -> str:
+    """Preserve explicit farmer/leader roles and only infer cooperative role for
+    ordinary cooperative members so a cooperative_leader login stays a leader.
+    """
+    role = row.get('role') or 'farmer'
+
+    # Explicit leader role must never be silently collapsed into a generic member role.
+    if role == 'cooperative_leader':
+        return 'cooperative_leader'
+
+    # Explicit cooperative role should stay cooperative.
+    if role == 'cooperative':
+        return 'cooperative'
+
+    # A farmer who is only a cooperative member should be presented as cooperative.
+    if role == 'farmer' and row.get('is_cooperative_member') == 1:
+        return 'cooperative'
+
+    # Otherwise keep the stored role or default to farmer.
+    return role if role else 'farmer'
+
+
 def get_db():
     return pymysql.connect(**DB_CONFIG)
 
@@ -101,14 +123,10 @@ def get_user_by_email(email: str) -> dict | None:
             if row:
                 row['id'] = row['farmer_id']
                 row['name'] = row['full_name']
-                # Set role based on is_cooperative_member flag
-                if row.get('is_cooperative_member') == 1:
-                    row['role'] = 'cooperative'
-                    # Ensure cooperative name is available
-                    if not row.get('cooperative_name') and row.get('coop_name'):
-                        row['cooperative_name'] = row['coop_name']
-                else:
-                    row['role'] = row.get('role', 'farmer')
+                row['role'] = normalize_role_from_user_row(row)
+                # Ensure cooperative name is available
+                if row.get('is_cooperative_member') == 1 and not row.get('cooperative_name') and row.get('coop_name'):
+                    row['cooperative_name'] = row['coop_name']
                 return row
             
             # Check officers
@@ -144,7 +162,10 @@ def get_farmer_by_id_or_phone(ident: str, role: str = 'farmer') -> dict | None:
             
             row = cur.fetchone()
             if row:
-                row['role'] = role if role == 'farmer' else row['officer_type']
+                if role == 'farmer':
+                    row['role'] = normalize_role_from_user_row(row)
+                else:
+                    row['role'] = row['officer_type']
                 row['id'] = row[id_col]
                 row['name'] = row.get('full_name') or row.get('name')
                 if role != 'farmer' and row['sector_id']:
@@ -157,14 +178,18 @@ def get_farmer_by_id_or_phone(ident: str, role: str = 'farmer') -> dict | None:
 
 def update_user_password(user_id: str, role: str, new_password: str) -> bool:
     """Update password for farmer or officer in the database"""
-    table = "farmers" if role == "farmer" else "officers"
-    id_col = "farmer_id" if role == "farmer" else "officer_id"
     try:
         with get_db() as conn:
             with conn.cursor() as cur:
-                # Update password_hash field (some tables might not have 'password' column)
-                cur.execute(f"UPDATE {table} SET password_hash=%s WHERE {id_col}=%s", 
-                           (new_password, user_id))
+                if role in ['farmer', 'cooperative', 'cooperative_leader']:
+                    cur.execute("UPDATE farmers SET password_hash=%s WHERE farmer_id=%s", 
+                               (new_password, user_id))
+                elif role in ['sector', 'district', 'admin']:
+                    cur.execute("UPDATE officers SET password_hash=%s WHERE officer_id=%s", 
+                               (new_password, user_id))
+                else:
+                    return False
+                
                 conn.commit()
                 return cur.rowcount > 0
     except Exception as e:
@@ -202,15 +227,11 @@ def get_farmer(farmer_id: str) -> dict | None:
             row['farms'] = get_farms(farmer_id)
             row['id'] = farmer_id
             row['name'] = row.get('full_name')
+            row['role'] = normalize_role_from_user_row(row)
             
-            # Set role based on is_cooperative_member flag
-            if row.get('is_cooperative_member') == 1:
-                row['role'] = 'cooperative'
-                # Ensure cooperative name is available
-                if not row.get('cooperative_name') and row.get('coop_name'):
-                    row['cooperative_name'] = row['coop_name']
-            else:
-                row['role'] = row.get('role', 'farmer')
+            # Ensure cooperative name is available
+            if row.get('is_cooperative_member') == 1 and not row.get('cooperative_name') and row.get('coop_name'):
+                row['cooperative_name'] = row['coop_name']
             return row
 
 def register_farmer(data: dict) -> dict:
@@ -233,6 +254,84 @@ def register_farmer(data: dict) -> dict:
     return res
 
 
+def register_farmer_with_location(data: dict) -> dict:
+    """Register a farmer with full location support (cell, village, cooperative)"""
+    password = generate_password()
+    role = data.get('role', 'farmer')
+    
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            # Generate farmer ID
+            cur.execute("SELECT MAX(CAST(SUBSTRING(farmer_id, 2) AS UNSIGNED)) as current_max FROM farmers")
+            row = cur.fetchone()
+            current_max = row['current_max'] if row and row['current_max'] else 0
+            farmer_id = f"F{current_max + 1:03d}"
+
+            # Determine approval status based on role and cooperative membership
+            approval_status = 'approved'  # Default for individual farmers
+            is_cooperative_member = 0     # Default for individual farmers
+            
+            if role == 'cooperative' and data.get('cooperative_id'):
+                # Cooperative members need approval from cooperative leader
+                approval_status = 'pending'
+                is_cooperative_member = 1
+
+            # Insert farmer record with location information
+            cur.execute("""
+                INSERT INTO farmers (
+                    farmer_id, full_name, email, phone, password_hash,
+                    cell_id, village_id, cooperative_id, is_cooperative_member,
+                    approval_status
+                ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            """, (
+                farmer_id, 
+                data['name'], 
+                data['email'], 
+                data.get('phone'), 
+                password,
+                data.get('cell_id'),
+                data.get('village_id'),
+                data.get('cooperative_id'),
+                is_cooperative_member,
+                approval_status
+            ))
+            
+            # Get sector_id from the data or default to Gashora
+            sector_id = 1  # Default to Gashora sector
+            if data.get('sector'):
+                cur.execute("SELECT sector_id FROM sectors WHERE sector_name=%s", (data['sector'],))
+                sec = cur.fetchone()
+                if sec:
+                    sector_id = sec['sector_id']
+            
+            # Create a farm record for this farmer if farm_size_ha is provided
+            if data.get('farm_size_ha'):
+                farm_size_are = float(data['farm_size_ha']) * 100  # Convert hectares to ares
+                cur.execute("""
+                    INSERT INTO farms (farmer_id, farm_name, sector_id, farm_size_are)
+                    VALUES (%s,%s,%s,%s)
+                """, (farmer_id, f"{data['name']}'s Farm", sector_id, farm_size_are))
+            
+            conn.commit()
+            
+    # Get the complete farmer record
+    result = get_farmer(farmer_id)
+    result['generated_password'] = password
+    result['approval_status'] = approval_status
+    
+    # Add cooperative name if applicable
+    if data.get('cooperative_id'):
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT cooperative_name FROM cooperatives WHERE cooperative_id=%s", (data['cooperative_id'],))
+                coop = cur.fetchone()
+                if coop:
+                    result['cooperative_name'] = coop['cooperative_name']
+                    result['coop_name'] = coop['cooperative_name']
+    
+    return result
+
+
 def register_officer(data: dict) -> dict:
     password = generate_password()
     with get_db() as conn:
@@ -242,6 +341,7 @@ def register_officer(data: dict) -> dict:
             current_max = row['current_max'] if row and row['current_max'] else 0
             
             officer_type = data.get('role', 'district')
+            # Admin prefix should be 'A', sector prefix is 'S', district is also 'A'
             prefix = 'S' if officer_type == 'sector' else 'A'
             officer_id = f"{prefix}{current_max + 1:03d}"
 
@@ -1189,7 +1289,8 @@ def get_all_gashora_locations() -> dict:
 def register_farmer_with_location(data: dict) -> dict:
     """
     Register farmer with Gashora-specific location (cell/village) and cooperative support.
-    Now sets is_active=1 by default (no approval needed).
+    Cooperative members start with 'pending' status and need approval.
+    Non-cooperative farmers get 'approved' status immediately.
     """
     # Use user-provided password or generate one
     password = data.get('password') or generate_password()
@@ -1206,6 +1307,9 @@ def register_farmer_with_location(data: dict) -> dict:
             role = data.get('role', 'farmer')
             cooperative_id = int(data.get('cooperative_id')) if data.get('cooperative_id') else None
             is_cooperative_member = 1 if role == 'cooperative' and cooperative_id else 0
+            
+            # Set approval status: pending for cooperative members, approved for individual farmers
+            approval_status = 'pending' if is_cooperative_member else 'approved'
             
             # Get cooperative name if cooperative_id provided
             cooperative_name = None
@@ -1229,17 +1333,17 @@ def register_farmer_with_location(data: dict) -> dict:
             except (ValueError, TypeError):
                 print(f"[WARN] Invalid village_id: {data.get('village_id')}")
 
-            # Insert farmer (is_active=1 means immediate access)
+            # Insert farmer with approval_status
             cur.execute("""
                 INSERT INTO farmers (
                     farmer_id, full_name, email, phone, password_hash, 
                     cooperative_id, cooperative_name, is_cooperative_member, role, 
-                    cell_id, village_id, is_active
+                    cell_id, village_id, is_active, approval_status
                 )
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,1)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,1,%s)
             """, (farmer_id, data['name'], data['email'], data.get('phone'), password, 
                   cooperative_id, cooperative_name, is_cooperative_member, role,
-                  cell_id, village_id))
+                  cell_id, village_id, approval_status))
             
             # Get Gashora sector_id
             cur.execute("SELECT sector_id FROM sectors WHERE sector_name='Gashora'")
@@ -1259,6 +1363,7 @@ def register_farmer_with_location(data: dict) -> dict:
             
     res = get_farmer(farmer_id)
     res['generated_password'] = password
+    res['approval_status'] = approval_status
     return res
 
 
@@ -1295,6 +1400,9 @@ def create_cooperative(data: dict) -> dict:
             current_max = row['current_max'] if row and row['current_max'] else 0
             coop_id = current_max + 1
             
+            # Generate registration number (COOP-001, COOP-002, etc.)
+            registration_number = f"COOP-{coop_id:03d}"
+            
             # Get Gashora sector_id
             cur.execute("SELECT sector_id FROM sectors WHERE sector_name='Gashora'")
             sec = cur.fetchone()
@@ -1307,13 +1415,16 @@ def create_cooperative(data: dict) -> dict:
                            (data['cell_name'], sector_id))
                 cell_row = cur.fetchone()
                 cell_id = cell_row['cell_id'] if cell_row else None
+            elif data.get('cell_id'):
+                # Allow direct cell_id if provided
+                cell_id = data.get('cell_id')
             
             cur.execute("""
                 INSERT INTO cooperatives 
-                (cooperative_id, cooperative_name, sector_id, cell_id, contact_phone, contact_email, total_members)
-                VALUES (%s,%s,%s,%s,%s,%s,%s)
+                (cooperative_id, cooperative_name, sector_id, cell_id, contact_phone, contact_email, total_members, registration_number)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
             """, (coop_id, data['name'], sector_id, cell_id, 
-                  data.get('contact_phone'), data.get('contact_email'), 0))
+                  data.get('contact_phone'), data.get('contact_email'), 0, registration_number))
             conn.commit()
             
             # Return created cooperative
@@ -1430,3 +1541,64 @@ def reject_farmer(farmer_id: str) -> bool:
             cur.execute("DELETE FROM farmers WHERE farmer_id=%s", (farmer_id,))
             conn.commit()
             return cur.rowcount > 0
+
+
+def save_advice(advice_id: str, data: dict) -> bool:
+    """Save notification/advice to farmer_advice or officer_advice table"""
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                # Determine if this is for a farmer or officer based on the data
+                if 'farmer_id' in data:
+                    # Save to farmer_advice table
+                    cur.execute("""
+                        INSERT INTO farmer_advice (
+                            advice_id, farmer_id, subject, message, advice_type, created_at
+                        ) VALUES (%s, %s, %s, %s, %s, %s)
+                    """, (
+                        advice_id,
+                        data['farmer_id'],
+                        data.get('subject', ''),
+                        data.get('message', ''),
+                        data.get('advice_type', 'system'),
+                        datetime.now()
+                    ))
+                elif 'officer_id' in data:
+                    # Save to officer_advice table
+                    cur.execute("""
+                        INSERT INTO officer_advice (
+                            advice_id, officer_id, subject, message, advice_type, created_at
+                        ) VALUES (%s, %s, %s, %s, %s, %s)
+                    """, (
+                        advice_id,
+                        data['officer_id'],
+                        data.get('subject', ''),
+                        data.get('message', ''),
+                        data.get('advice_type', 'system'),
+                        datetime.now()
+                    ))
+                conn.commit()
+                return True
+    except Exception as e:
+        print(f"[ERROR] save_advice failed: {e}")
+        return False
+
+def update_user_password(user_id: str, role: str, new_password: str) -> bool:
+    """Update password for farmer or officer in the database"""
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                if role in ['farmer', 'cooperative', 'cooperative_leader']:
+                    cur.execute("UPDATE farmers SET password_hash=%s WHERE farmer_id=%s", 
+                               (new_password, user_id))
+                elif role in ['sector', 'district', 'admin']:
+                    cur.execute("UPDATE officers SET password_hash=%s WHERE officer_id=%s", 
+                               (new_password, user_id))
+                else:
+                    return False
+                
+                conn.commit()
+                return cur.rowcount > 0
+    except Exception as e:
+        print(f"Error updating password in DB: {e}")
+        return False

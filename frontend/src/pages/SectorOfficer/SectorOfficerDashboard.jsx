@@ -7,6 +7,7 @@ import SectorReports from './SectorReports';
 import FarmerDetailView from './FarmerDetailView';
 import PredictionDetailView from './PredictionDetailView';
 import ActivityAnalytics from './ActivityAnalytics';
+import OfficerProfile from '../DistrictAdmin/OfficerProfile';
 
 export default function SectorOfficerDashboard({ user, onLogout, lang, setLang }) {
   const t = T[lang];
@@ -190,23 +191,34 @@ export default function SectorOfficerDashboard({ user, onLogout, lang, setLang }
               <div className="so-loading-list">
                 {[1,2,3].map(i => <div key={i} className="so-skeleton-row" />)}
               </div>
-            ) : (dashData?.recent_preds || dashData?.all_predictions || []).slice(0, 5).length === 0 ? (
-              <div className="so-empty-mini">{lang === 'en' ? 'No predictions yet' : 'Nta bisobanuro'}</div>
-            ) : (
-              (dashData?.recent_preds || dashData?.all_predictions || []).slice(0, 5).map((p, i) => (
-                <div key={i} className="so-pred-row" onClick={() => setSelectedPred(p)}>
+            ) : (() => {
+              // Deduplicate predictions by farmer
+              const farmerMap = new Map();
+              (dashData?.recent_preds || dashData?.all_predictions || []).forEach((p) => {
+                const farmerId = p.farmer_id || p.farmer_name;
+                if (!farmerMap.has(farmerId) || new Date(p.timestamp || p.created_at) > new Date(farmerMap.get(farmerId).timestamp || farmerMap.get(farmerId).created_at)) {
+                  farmerMap.set(farmerId, p);
+                }
+              });
+              
+              const uniqueFarmers = Array.from(farmerMap.values()).slice(0, 5);
+              
+              return uniqueFarmers.length === 0 ? (
+                <div className="so-empty-mini">{lang === 'en' ? 'No predictions yet' : 'Nta bisobanuro'}</div>
+              ) : uniqueFarmers.map((p, i) => (
+                <div key={`${p.farmer_id || p.farmer_name}-${i}`} className="so-pred-row" onClick={() => setSelectedFarmerId(p.farmer_id || p.farmer_name)}>
                   <div className="so-pred-icon">
                     <i className="bi bi-file-earmark-text"></i>
                   </div>
                   <div className="so-pred-info">
-                    <div className="so-pred-name">{p.farmer_name || p.farmer_id} · <span style={{ color: 'var(--g700)' }}>{p.crop || p.crop_type}</span></div>
+                    <div className="so-pred-name" style={{ color: '#0d9488', fontWeight: 600 }}>{p.farmer_name || p.farmer_id} · <span style={{ color: 'var(--g700)' }}>{p.crop || p.crop_type}</span></div>
                     <div className="so-pred-date">{fmtDate(p.timestamp || p.created_at)}</div>
                   </div>
                   <div className="so-pred-yield">{parseFloat(p.yield_per_are_kg || 0).toFixed(1)} <small>kg/a</small></div>
                   <i className="bi bi-chevron-right so-pred-arrow"></i>
                 </div>
-              ))
-            )}
+              ));
+            })()}
           </div>
 
           {/* High Alert Farms */}
@@ -287,6 +299,7 @@ export default function SectorOfficerDashboard({ user, onLogout, lang, setLang }
             sectorName={sectorName}
             sectorId={sectorId}
             setSelectedPred={setSelectedPred}
+            setSelectedFarmerId={setSelectedFarmerId}
             lang={lang}
             dashData={dashData}
           />
@@ -313,7 +326,7 @@ export default function SectorOfficerDashboard({ user, onLogout, lang, setLang }
               <div>
                 <h2 className="so-page-title">
                   <i className="bi bi-bell-fill"></i>
-                  {lang === 'en' ? 'Messages from District Admin' : 'Ubutumwa buvuye ku Karere'}
+                  {lang === 'en' ? 'Messages from System Administrator' : 'Ubutumwa buvuye ku Muyobozi wa Sisitemu'}
                 </h2>
                 <p className="so-page-sub">
                   {lang === 'en' ? 'Advisory messages sent by the District Agricultural Officer' : 'Inama zoherejwe na Ofisiye w\'Ubuhinzi w\'Akarere'}
@@ -323,7 +336,7 @@ export default function SectorOfficerDashboard({ user, onLogout, lang, setLang }
             {officerMessages.length === 0 ? (
               <div className="so-empty-state">
                 <i className="bi bi-bell-slash"></i>
-                <p>{lang === 'en' ? 'No messages from District Admin yet' : 'Nta butumwa buvuye ku Karere'}</p>
+                <p>{lang === 'en' ? 'No messages from System Administrator yet' : 'Nta butumwa buvuye ku Muyobozi wa Sisitemu'}</p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -362,6 +375,16 @@ export default function SectorOfficerDashboard({ user, onLogout, lang, setLang }
               </div>
             )}
           </div>
+        );
+      case 'profile':
+        return (
+          <OfficerProfile
+            user={user}
+            onLogout={onLogout}
+            onBack={() => setTab('overview')}
+            lang={lang}
+            setLang={setLang}
+          />
         );
       default: return renderOverview();
     }
@@ -450,7 +473,7 @@ export default function SectorOfficerDashboard({ user, onLogout, lang, setLang }
 }
 
 /* ── Inline Predictions List ── */
-function SectorPredictionsList({ sectorName, sectorId, setSelectedPred, lang, dashData }) {
+function SectorPredictionsList({ sectorName, sectorId, setSelectedPred, setSelectedFarmerId, lang, dashData }) {
   const [preds, setPreds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -471,7 +494,22 @@ function SectorPredictionsList({ sectorName, sectorId, setSelectedPred, lang, da
       });
   }, [sectorName]);
 
-  const filtered = preds
+  // Group predictions by unique farmer to avoid duplicates
+  const uniqueFarmers = () => {
+    const farmerMap = new Map();
+    
+    preds.forEach((p) => {
+      const farmerId = p.farmer_id || p.farmer_name;
+      if (!farmerMap.has(farmerId) || new Date(p.timestamp || p.created_at) > new Date(farmerMap.get(farmerId).timestamp || farmerMap.get(farmerId).created_at)) {
+        // Keep the most recent prediction for each farmer
+        farmerMap.set(farmerId, p);
+      }
+    });
+    
+    return Array.from(farmerMap.values());
+  };
+
+  const filtered = uniqueFarmers()
     .filter(p => {
       const q = search.toLowerCase();
       const matchSearch = !q || (p.farmer_name || p.farmer_id || '').toLowerCase().includes(q) ||
@@ -513,7 +551,7 @@ function SectorPredictionsList({ sectorName, sectorId, setSelectedPred, lang, da
       </div>
 
       <div className="so-pred-count">
-        {loading ? '…' : filtered.length} {lang === 'en' ? 'predictions found' : 'ibisobanuro bibonetse'}
+        {loading ? '…' : filtered.length} {lang === 'en' ? 'farmers found' : 'abahinzi babonetse'}
       </div>
 
       {loading ? (
@@ -523,7 +561,7 @@ function SectorPredictionsList({ sectorName, sectorId, setSelectedPred, lang, da
       ) : filtered.length === 0 ? (
         <div className="so-empty-state">
           <i className="bi bi-clipboard2-x"></i>
-          <p>{lang === 'en' ? 'No predictions match your search' : 'Nta bisobanuro bihuye n\'ubushakashatsi bwawe'}</p>
+          <p>{lang === 'en' ? 'No farmers match your search' : 'Nta bahinzi bahuye n\'ubushakashatsi bwawe'}</p>
         </div>
       ) : (
         <div className="so-pred-table-wrap">
@@ -542,12 +580,12 @@ function SectorPredictionsList({ sectorName, sectorId, setSelectedPred, lang, da
             </thead>
             <tbody>
               {filtered.map((p, i) => (
-                <tr key={i} className="so-pred-tr" onClick={() => setSelectedPred(p)}>
+                <tr key={`${p.farmer_id || p.farmer_name}-${i}`} className="so-pred-tr" onClick={() => setSelectedFarmerId(p.farmer_id || p.farmer_name)}>
                   <td>
                     <div className="so-td-farmer">
                       <div className="so-td-avatar">{(p.farmer_name || p.farmer_id || 'F').charAt(0).toUpperCase()}</div>
                       <div>
-                        <div className="so-td-name">{p.farmer_name || p.farmer_id}</div>
+                        <div className="so-td-name so-farmer-clickable">{p.farmer_name || p.farmer_id}</div>
                         <div className="so-td-id">{p.farmer_id}</div>
                       </div>
                     </div>

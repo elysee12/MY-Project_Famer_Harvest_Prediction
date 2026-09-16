@@ -13,13 +13,18 @@ export default function FarmerDashboard({ user, onNavigate, onResult, history = 
     name: user.name, 
     role: user.role,
     cell_name: user.cell_name,
-    village_name: user.village_name
+    village_name: user.village_name,
+    approval_status: user.approval_status
   });
   
   const t = T[lang];
   const farmHa  = user.farm_size_ha  || 0;
   const farmAre = user.farm_size_are || Math.round(farmHa * 100);
   const unread  = notifications.filter(n => !n.read).length;
+  
+  // Check if user is pending approval
+  const isPending = user.approval_status === 'pending';
+  const isRejected = user.approval_status === 'rejected';
 
   // Compute avg yield from history
   const avgYield = history.length
@@ -64,6 +69,105 @@ export default function FarmerDashboard({ user, onNavigate, onResult, history = 
       />
 
       <div className="scroll fade-up">
+
+        {/* ── Pending Approval Alert ── */}
+        {isPending && (
+          <div style={{
+            background: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)',
+            color: 'white',
+            borderRadius: 16,
+            padding: '20px 24px',
+            marginBottom: 24,
+            boxShadow: '0 4px 16px rgba(245,158,11,0.3)',
+            border: '2px solid rgba(255,255,255,0.3)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+              <div style={{
+                width: 48,
+                height: 48,
+                background: 'rgba(255,255,255,0.25)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 24,
+                flexShrink: 0
+              }}>
+                <i className="bi bi-clock-history"></i>
+              </div>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 8, color: 'white' }}>
+                  {lang === 'en' ? '⏳ Membership Pending Approval' : '⏳ Gusaba Ubuyobozi'}
+                </h3>
+                <p style={{ fontSize: 14, marginBottom: 8, opacity: 0.95, lineHeight: 1.6 }}>
+                  {lang === 'en'
+                    ? 'Your cooperative membership application is currently under review by the cooperative leader. You will receive an email notification once your application is approved or if additional information is needed.'
+                    : 'Icyifuzo cyanyu cyo kwinjira muri koperative kiri gusubirwamo n\'umuyobozi wa koperative. Muzakira ubutumwa bwa imeli iyo icyemezo cyafashwe.'}
+                </p>
+                <p style={{ fontSize: 13, fontWeight: 700, opacity: 0.9 }}>
+                  <i className="bi bi-info-circle-fill"></i> {lang === 'en' ? 'Cooperative: ' : 'Koperative: '}
+                  <span style={{ fontWeight: 800 }}>{user.cooperative_name || 'N/A'}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* ── Rejected Alert ── */}
+        {isRejected && (
+          <div style={{
+            background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
+            color: 'white',
+            borderRadius: 16,
+            padding: '20px 24px',
+            marginBottom: 24,
+            boxShadow: '0 4px 16px rgba(220,38,38,0.3)',
+            border: '2px solid rgba(255,255,255,0.3)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+              <div style={{
+                width: 48,
+                height: 48,
+                background: 'rgba(255,255,255,0.25)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 24,
+                flexShrink: 0
+              }}>
+                <i className="bi bi-x-circle-fill"></i>
+              </div>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 8, color: 'white' }}>
+                  {lang === 'en' ? '❌ Membership Application Not Approved' : '❌ Icyifuzo Ntacyo Cyatanze'}
+                </h3>
+                <p style={{ fontSize: 14, marginBottom: 8, opacity: 0.95, lineHeight: 1.6 }}>
+                  {lang === 'en'
+                    ? 'Your cooperative membership application was not approved. Please see the reason below:'
+                    : 'Icyifuzo cyanyu cyo kwinjira muri koperative ntabwo cyemewe. Reba impamvu hano hasi:'}
+                </p>
+                {user.rejection_reason && (
+                  <div style={{
+                    background: 'rgba(255,255,255,0.2)',
+                    padding: '12px 16px',
+                    borderRadius: 8,
+                    marginTop: 12,
+                    fontSize: 13,
+                    fontStyle: 'italic'
+                  }}>
+                    "{user.rejection_reason}"
+                  </div>
+                )}
+                <p style={{ fontSize: 13, fontWeight: 600, marginTop: 12, opacity: 0.9 }}>
+                  {lang === 'en'
+                    ? 'Please contact the cooperative leader or District Agricultural Office for more information.'
+                    : 'Turagusaba kuvugana n\'umuyobozi wa koperative cyangwa biro y\'ubuhinzi bw\'akarere.'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Welcome Banner ── */}
         <div className="modern-welcome-card" style={{ marginBottom: 24, background: 'linear-gradient(135deg, #0f3d38 0%, #0d9488 100%)' }}>

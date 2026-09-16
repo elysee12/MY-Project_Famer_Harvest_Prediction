@@ -12,6 +12,7 @@ import ForgotPassword     from "./pages/Auth/ForgotPassword";
 // ── Farmer Pages ──────────────────────────────────────────────────────────────
 import FarmerDashboard    from "./pages/Farmer/FarmerDashboard";
 import CooperativeDashboard from "./pages/Farmer/CooperativeDashboard";
+import CooperativeLeaderDashboard from "./pages/CooperativeLeader/CooperativeLeaderDashboard";
 import PredictScreen      from "./pages/Farmer/PredictScreen";
 import ResultScreen       from "./pages/Farmer/ResultScreen";
 import HistoryScreen      from "./pages/Farmer/HistoryScreen";
@@ -83,6 +84,7 @@ const dashboardPathForRole = (role) => {
   if (role === "admin" || role === "district") return "/admin";
   if (role === "sector" || role === "officer") return "/sector";
   if (role === "cooperative") return "/cooperative";
+  if (role === "cooperative_leader") return "/cooperative-leader";
   return "/farmer";
 };
 
@@ -261,6 +263,22 @@ export default function App() {
         <GlobalStyle />
         <SmsNotification sms={sms} onClear={() => setSms(null)} />
         <DistrictAdminDashboard
+          user={user}
+          onLogout={logout}
+          lang={lang}
+          setLang={setLang}
+        />
+      </>
+    );
+  }
+
+  // ── Cooperative Leader ────────────────────────────────────────────────────────
+  if (user.role === "cooperative_leader") {
+    return (
+      <>
+        <GlobalStyle />
+        <SmsNotification sms={sms} onClear={() => setSms(null)} />
+        <CooperativeLeaderDashboard
           user={user}
           onLogout={logout}
           lang={lang}

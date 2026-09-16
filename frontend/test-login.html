@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Cooperative Leader Login</title>
+</head>
+<body>
+    <h1>Test Cooperative Leader API</h1>
+    
+    <div>
+        <h2>1. Test Login</h2>
+        <button onclick="testLogin()">Test Login</button>
+        <div id="loginResult"></div>
+    </div>
+    
+    <div>
+        <h2>2. Test Dashboard API</h2>
+        <button onclick="testDashboard()">Test Dashboard</button>
+        <div id="dashboardResult"></div>
+    </div>
+    
+    <script>
+        async function testLogin() {
+            const resultDiv = document.getElementById('loginResult');
+            resultDiv.innerHTML = 'Testing login...';
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'CL001',
+                        password: 'harvest2024'
+                    })
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <h3>Login Result:</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                
+                // Store user data for dashboard test
+                window.testUser = data.user;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+        
+        async function testDashboard() {
+            const resultDiv = document.getElementById('dashboardResult');
+            
+            if (!window.testUser || !window.testUser.cooperative_id) {
+                resultDiv.innerHTML = '<p style="color: red;">Please login first</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = 'Testing dashboard API...';
+            
+            try {
+                const cooperativeId = window.testUser.cooperative_id;
+                const response = await fetch(`http://localhost:5000/api/cooperative-dashboard/${cooperativeId}`);
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <h3>Dashboard Result:</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

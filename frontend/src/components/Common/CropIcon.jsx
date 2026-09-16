@@ -7,8 +7,6 @@ export default function CropIcon({ name, style, size = 24, color = "white" }) {
   switch (name) {
     case "Maize":
       return <Leaf style={iconStyle} />;
-    case "Beans":
-      return <Sprout style={iconStyle} />;
     case "Rice":
       return <Droplets style={iconStyle} />;
     default:

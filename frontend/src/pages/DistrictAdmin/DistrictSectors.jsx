@@ -1,9 +1,9 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { API_BASE, SECTORS, CROP_BENCH, fmtDate } from '../../constants/constants';
 
-const CROP_COLORS = { Maize: '#f59e0b', Beans: '#2dd4bf', Rice: '#0d9488' };
-const CROP_BG    = { Maize: '#fef3c7', Beans: '#ccfbf1', Rice: '#ccfbf1' };
-const CROP_TEXT  = { Maize: '#92400e', Beans: '#0f766e', Rice: '#0f766e' };
+const CROP_COLORS = { Maize: '#f59e0b', Rice: '#0d9488' };
+const CROP_BG    = { Maize: '#fef3c7', Rice: '#ccfbf1' };
+const CROP_TEXT  = { Maize: '#92400e', Rice: '#0f766e' };
 
 function perfStatus(val, crop) {
   const bench = CROP_BENCH[crop] || 20;
@@ -132,7 +132,7 @@ function SectorDetailView({ sectorId, onBack, lang }) {
 
       {/* Per-Crop Summary Cards */}
       <div className="da-crop-summary-grid">
-        {['Maize', 'Beans', 'Rice'].map(crop => {
+        {['Maize', 'Rice'].map(crop => {
           const cs = cropStats[crop];
           if (!cs) return (
             <div key={crop} className="da-crop-summary-card da-crop-empty">
@@ -202,7 +202,7 @@ function SectorDetailView({ sectorId, onBack, lang }) {
         <div className="da-section-hd">
           <span><i className="bi bi-clipboard2-data-fill"></i> {lang === 'en' ? 'All Predictions in ' + sectorName : 'Ibisobanuro Byose muri ' + sectorName}</span>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {['All','Maize','Beans','Rice'].map(c => (
+            {['All','Maize','Rice'].map(c => (
               <button key={c} className={`so-filter-chip ${cropFilter===c?'act':''}`} style={{ fontSize:11, padding:'5px 10px' }} onClick={() => setCropFilter(c)}>
                 {c === 'All' ? (lang==='en'?'All Crops':'Byose') : c}
               </button>

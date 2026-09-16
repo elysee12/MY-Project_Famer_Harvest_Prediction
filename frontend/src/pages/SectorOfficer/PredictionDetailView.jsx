@@ -153,7 +153,7 @@ export default function PredictionDetailView({ prediction, onBack, lang, user, o
               { icon: 'bi-flower2', lbl: lang === 'en' ? 'Crop Type' : 'Igihingwa', val: p.crop || p.crop_type },
               { icon: 'bi-geo-alt', lbl: lang === 'en' ? 'Sector' : 'Umurenge', val: p.sector || p.sector_name },
               { icon: 'bi-sun', lbl: lang === 'en' ? 'Season' : 'Igihe cy\'Ihinga', val: p.season },
-              { icon: 'bi-calendar', lbl: lang === 'en' ? 'Planting Date' : 'Itariki yo Gutera', val: fmtDate(p.planting_date) || '—' },
+              { icon: 'bi-calendar', lbl: lang === 'en' ? 'Planting/Planted Date' : 'Itariki yo Gutera/Wateje', val: fmtDate(p.planting_date) || '—' },
               { icon: 'bi-person', lbl: lang === 'en' ? 'Farmer' : 'Umuhinzi', val: p.farmer_name || p.farmer_id },
               { icon: 'bi-cpu', lbl: lang === 'en' ? 'Model Used' : 'Modeli Yakoreshejwe', val: p.model_used || 'Random Forest' },
               { icon: 'bi-clock', lbl: lang === 'en' ? 'Prediction Date' : 'Itariki y\'Igisobanuro', val: fmtDate(p.created_at || p.timestamp) },

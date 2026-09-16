@@ -211,11 +211,11 @@ export default function SectorReports({ user, dashData, lang }) {
                 <i className="bi bi-file-earmark-arrow-up-fill"></i>
               </div>
               <div>
-                <div className="so-report-card-title">{lang === 'en' ? 'Submit Sector Report to District' : 'Ohereza Raporo y\'Umurenge ku Karere'}</div>
+                <div className="so-report-card-title">{lang === 'en' ? 'Submit Sector Report to System Admin' : 'Ohereza Raporo y\'Umurenge kuri Admin'}</div>
                 <div className="so-report-card-sub">
                   {lang === 'en'
-                    ? 'Reports are sent directly to the District Agricultural Officer'
-                    : 'Raporo zoherezwa directly ku Ofisiye w\'Ubuhinzi w\'Akarere'}
+                    ? 'Reports are sent directly to the System Admin'
+                    : 'Raporo zoherezwa directly ku Ofisiye w\'Ubuhinzi w\'Admin'}
                 </div>
               </div>
               <button className="so-auto-draft-btn" onClick={handleAutoDraft}>
@@ -263,7 +263,7 @@ export default function SectorReports({ user, dashData, lang }) {
               >
                 {submitting
                   ? <><div className="spin" style={{ display: 'inline-block', marginRight: 8 }} /> {lang === 'en' ? 'Submitting…' : 'Kohereza…'}</>
-                  : <><i className="bi bi-send-fill"></i> {lang === 'en' ? 'Submit to District' : 'Ohereza ku Karere'}</>}
+                  : <><i className="bi bi-send-fill"></i> {lang === 'en' ? 'Submit to Admin' : 'Ohereza kuri Admin'}</>}
               </button>
               <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => { setReportTitle(''); setReportContent(''); }}>
                 {lang === 'en' ? 'Clear' : 'Siba'}

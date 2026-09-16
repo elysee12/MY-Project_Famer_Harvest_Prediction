@@ -20,8 +20,9 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
   const [agreedTerms, setAgreedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [success, setSuccess] = useState(""); // "" | "approved" | "pending"
   const [registeredEmail, setRegisteredEmail] = useState("");
+  const [cooperativeName, setCooperativeName] = useState(""); // For pending message
   
   // Data from API
   const [cells, setCells] = useState([]);
@@ -186,11 +187,16 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
 
       if (data.success) {
         setRegisteredEmail(regData.email);
-        setSuccess(
-          lang === "rw"
-            ? "Konti yawe yafunguwe neza! Ubu ushobora kwinjira. 🎉"
-            : "Account created successfully! You can now login. 🎉"
-        );
+        
+        // Check if user is pending approval
+        if (data.pending_approval) {
+          // Show pending approval message
+          setSuccess("pending");
+          setCooperativeName(data.cooperative_name || "the cooperative");
+        } else {
+          // Show normal success message
+          setSuccess("approved");
+        }
       } else {
         let errMsg = data.error || "Registration failed.";
         if (data.email_error) errMsg += ` (${data.email_error})`;
@@ -259,7 +265,7 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
           </div>
         )}
         
-        {success && (
+        {success === "approved" && (
           <div style={{
             background: 'linear-gradient(135deg, #f0fdfa, #ccfbf1)',
             border: '2px solid #2dd4bf',
@@ -319,6 +325,113 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
                   <div style={{ fontSize: 13, color: '#0f766e', lineHeight: 1.5, flex: 1 }}>
                     {lang === 'rw' ? 'Tangira gukoresha sisitemu' : 'Start using the system immediately'}
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {success === "pending" && (
+          <div style={{
+            background: 'linear-gradient(135deg, #fffbeb, #fef3c7)',
+            border: '2px solid #fbbf24',
+            borderRadius: 14,
+            padding: '24px',
+            marginBottom: 20,
+          }}>
+            {/* Title with Icon */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+              <div style={{ width: 48, height: 48, background: '#f59e0b', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <i className="bi bi-clock-history" style={{ color: 'white', fontSize: 28 }}></i>
+              </div>
+              <div>
+                <div style={{ fontWeight: 900, fontSize: 18, color: '#78350f', margin: 0 }}>
+                  {lang === 'rw' ? 'Kwiyandikisha Byarangiye! ⏳' : 'Registration Complete! ⏳'}
+                </div>
+                <div style={{ fontSize: 13, color: '#92400e', margin: 0, fontWeight: 500 }}>
+                  {lang === 'rw' ? 'Tegereza Kwemezwa' : 'Pending Approval'}
+                </div>
+              </div>
+            </div>
+
+            {/* Email Highlight Box */}
+            <div style={{ background: 'white', border: '2px solid #fbbf24', borderRadius: 12, padding: '16px', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <i className="bi bi-envelope-check-fill" style={{ color: '#f59e0b', fontSize: 24, flexShrink: 0 }}></i>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 4 }}>
+                  {lang === 'rw' ? 'Email yawe' : 'Your registered email'}
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 900, color: '#92400e', wordBreak: 'break-all' }}>
+                  {registeredEmail || email}
+                </div>
+              </div>
+            </div>
+            
+            {/* Cooperative Info */}
+            <div style={{ background: 'white', border: '2px solid #fbbf24', borderRadius: 12, padding: '16px', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <i className="bi bi-building" style={{ color: '#f59e0b', fontSize: 24, flexShrink: 0 }}></i>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 4 }}>
+                  {lang === 'rw' ? 'Kooperative' : 'Cooperative'}
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 900, color: '#92400e' }}>
+                  {cooperativeName}
+                </div>
+              </div>
+            </div>
+
+            {/* Pending Status Warning */}
+            <div style={{ background: 'rgba(251, 191, 36, 0.1)', borderRadius: 12, padding: '16px', marginBottom: 18, borderLeft: '4px solid #f59e0b' }}>
+              <div style={{ fontWeight: 700, fontSize: 13, color: '#78350f', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: 18 }}></i>
+                {lang === 'rw' ? '⏳ Muri Gutegereza Kwemezwa' : '⏳ Pending Approval'}
+              </div>
+              <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
+                {lang === 'rw' 
+                  ? `Ikibazo cyanyu cyo kuba umunyamuryango wa ${cooperativeName} cyoherejwe kandi cyategereje kwemezwa n'umuyobozi wa koperative.`
+                  : `Your application to join ${cooperativeName} has been submitted and is waiting for approval by the cooperative leader.`}
+              </div>
+            </div>
+
+            {/* What happens next */}
+            <div style={{ background: 'white', borderRadius: 12, padding: '16px', marginBottom: 18, border: '1px solid #fde68a' }}>
+              <div style={{ fontWeight: 700, fontSize: 13, color: '#78350f', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <i className="bi bi-list-check" style={{ fontSize: 18 }}></i>
+                {lang === 'rw' ? 'Ibikurikira' : 'What Happens Next?'}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <div style={{ width: 28, height: 28, background: '#f59e0b', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0, fontSize: 14 }}>1</div>
+                  <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.5, flex: 1 }}>
+                    {lang === 'rw' ? 'Umuyobozi wa koperative azasuzuma ikibazo cyanyu' : 'The cooperative leader will review your application'}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <div style={{ width: 28, height: 28, background: '#f59e0b', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0, fontSize: 14 }}>2</div>
+                  <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.5, flex: 1 }}>
+                    {lang === 'rw' ? 'Uzahamagara email iyo wemejwe cyangwa wanze' : 'You will receive an email when approved or rejected'}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <div style={{ width: 28, height: 28, background: '#f59e0b', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0, fontSize: 14 }}>3</div>
+                  <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.5, flex: 1 }}>
+                    {lang === 'rw' ? 'Nyuma yo kwemezwa, ushobora kwinjira no gutangira gukoresha sisitemu' : 'After approval, you can login and start using the system'}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Cannot Login Warning */}
+            <div style={{ background: '#fef2f2', border: '2px solid #fca5a5', borderRadius: 12, padding: '16px', marginBottom: 0, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <i className="bi bi-x-circle-fill" style={{ color: '#dc2626', fontSize: 24, flexShrink: 0, marginTop: 2 }}></i>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 14, color: '#7f1d1d', marginBottom: 6 }}>
+                  {lang === 'rw' ? '🚫 Ntushobora Kwinjira Ubu' : '🚫 Cannot Login Yet'}
+                </div>
+                <div style={{ fontSize: 13, color: '#991b1b', lineHeight: 1.5 }}>
+                  {lang === 'rw' 
+                    ? 'Ntushobora kwinjira kugeza igihe ikibazo cyanyu cyemewe n\'umuyobozi wa koperative. Tegereza email yo kwemezwa mbere yo kugerageza kwinjira.'
+                    : 'You cannot login until your application is approved by the cooperative leader. Please wait for the approval email before attempting to login.'}
                 </div>
               </div>
             </div>

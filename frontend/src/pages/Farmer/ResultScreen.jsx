@@ -1,9 +1,11 @@
 import React from 'react';
 import { T, fmtDate } from '../../constants/constants';
 import Topbar from '../../components/Common/Topbar';
+import { useToast, ToastContainer } from '../../components/Common/Toast';
 
 export default function ResultScreen({ result, onNavigate, onSave, history = [], lang, setLang }) {
   const t = T[lang];
+  const { toasts, showToast, removeToast } = useToast();
   if (!result) return null;
 
   const SEASON_BENCH_RESULT = {
@@ -17,7 +19,12 @@ export default function ResultScreen({ result, onNavigate, onSave, history = [],
 
   const generatePDF = () => {
     if (!window.jspdf || !window.jspdf.jsPDF) {
-      alert("PDF library still loading, please wait a moment.");
+      showToast(
+        lang === 'en'
+          ? 'PDF library still loading, please wait a moment.'
+          : 'Ikibitabo cya PDF kiracyashyirwa, tegereza gato.',
+        'warning'
+      );
       return;
     }
     const { jsPDF } = window.jspdf;
@@ -111,6 +118,7 @@ export default function ResultScreen({ result, onNavigate, onSave, history = [],
 
   return (
     <>
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
       <Topbar 
         title={lang === "en" ? "Prediction Result" : "Ibisobanuro"} 
         sub={`ID: ${result.id}`}
@@ -173,6 +181,42 @@ export default function ResultScreen({ result, onNavigate, onSave, history = [],
             </div>
           ))}
         </div>
+
+        {/* Yield Grade Display */}
+        {result.yield_grade && (
+          <div className="card" style={{ 
+            marginBottom: 14,
+            background: result.yield_grade === 'Excellent' ? 'var(--g50)' : 
+                       result.yield_grade === 'Good' ? 'var(--g50)' : 
+                       result.yield_grade === 'Average' ? '#fef3c7' : '#fee2e2',
+            border: `2px solid ${result.yield_grade === 'Excellent' ? 'var(--g300)' : 
+                                 result.yield_grade === 'Good' ? 'var(--g300)' : 
+                                 result.yield_grade === 'Average' ? '#d97706' : '#dc2626'}`,
+            textAlign: 'center'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 16 }}>
+              <div style={{ fontSize: 28 }}>
+                {result.yield_grade === 'Excellent' ? '🏆' : 
+                 result.yield_grade === 'Good' ? '⭐' : 
+                 result.yield_grade === 'Average' ? '📊' : '⚠️'}
+              </div>
+              <div>
+                <div style={{ 
+                  fontSize: 18, 
+                  fontWeight: 800, 
+                  color: result.yield_grade === 'Excellent' ? 'var(--g800)' : 
+                         result.yield_grade === 'Good' ? 'var(--g800)' : 
+                         result.yield_grade === 'Average' ? '#92400e' : '#991b1b'
+                }}>
+                  {result.yield_grade}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--s600)' }}>
+                  {lang === 'en' ? 'Yield Performance Grade' : 'Icyiciro cy\'Umusaruro'}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Comparison */}
         <div className="card" style={{ marginBottom: 14 }}>

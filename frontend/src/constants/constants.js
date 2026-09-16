@@ -86,14 +86,13 @@ export const SOIL_DISPLAY = {
 };
 
 export const SEASON_BENCH = {
-  "Season A": {Maize:23.86, Beans:12.17, Rice:37.96},
-  "Season B": {Maize:22.59, Beans:11.65, Rice:34.77},
+  "Season A": {Maize:24.0, Rice:28.0},
+  "Season B": {Maize:22.0, Rice:26.0},
 };
 
 export const YIELD_THRESHOLDS = {
-  Maize: {poor:20.54, avg:23.05, good:25.52, excellent:28.0},
-  Beans: {poor:10.42, avg:11.90, good:13.51, excellent:15.0},
-  Rice : {poor:31.49, avg:35.82, good:40.87, excellent:45.0},
+  Maize: {poor:10.0, avg:17.0, good:24.0, excellent:30.0},
+  Rice : {poor:15.0, avg:25.6, good:32.0, excellent:40.0},
 };
 
 export const PEST_BY_MONTH = {
@@ -133,15 +132,15 @@ export const DEMO_USERS = {
 };
 
 export function simulateOffline({crop,month,season,farmSizeAre,areaPlantedAre,fertilizer,irrigation,soil}) {
-  const BASE = {Maize:23.22,Beans:11.91,Rice:36.36};
+  const BASE = {Maize:23.22,Rice:36.36};
   const c = CLIMATE[month]||CLIMATE.October;
-  const OPT_T={Maize:23,Beans:22,Rice:25}, OPT_R={Maize:90,Beans:75,Rice:130};
+  const OPT_T={Maize:23,Rice:25}, OPT_R={Maize:90,Rice:130};
   const tf = Math.exp(-0.5*Math.pow((c.temperature-OPT_T[crop])/2,2));
   const rf = Math.tanh(c.rainfall/OPT_R[crop]);
   const hf = 1-0.003*Math.abs(c.humidity-74);
   const sf = c.sunshine/7.5;
   let y = BASE[crop]*tf*rf*hf*sf;
-  if (season==="Season A") y*={Maize:1.12,Beans:1.05,Rice:1.10}[crop];
+  if (season==="Season A") y*={Maize:1.12,Rice:1.10}[crop];
   if (soil==="Loam") y*=1.05; else if (soil==="Sandy-Clay") y*=0.92;
   if (fertilizer) y*=1.18;
   if (irrigation)  y*=1.10;
@@ -166,7 +165,7 @@ export function buildRecs(crop, yieldPA, inputs={}) {
   const extension  = inputs.extension || "Yes";
 
   // Harvest timing — days to harvest from planting per crop
-  const DAYS = {Maize:90, Beans:75, Rice:120};
+  const DAYS = {Maize:90, Rice:120};
   const plantDate = inputs.plantingDate ? new Date(inputs.plantingDate) : new Date();
   const harvestDate = new Date(plantDate);
   harvestDate.setDate(harvestDate.getDate() + (DAYS[crop]||90));
@@ -174,21 +173,19 @@ export function buildRecs(crop, yieldPA, inputs={}) {
   const harvestStr_rw = harvestDate.toLocaleDateString("rw-RW",{day:"numeric",month:"long",year:"numeric"});
 
   // Estimated revenue (Bugesera avg market prices kg)
-  const PRICE = {Maize:300, Beans:600, Rice:500}; // RWF per kg
+  const PRICE = {Maize:300, Rice:500}; // RWF per kg
   const revenue = Math.round(totalKg * (PRICE[crop]||400));
   const revenueStr = revenue.toLocaleString();
 
   // Next season recommendation
-  const NEXT_CROP = {Maize:"Beans", Beans:"Maize", Rice:"Rice"};
+  const NEXT_CROP = {Maize:"Rice", Rice:"Maize"};
   const nextCrop = NEXT_CROP[crop];
-  const nextCrop_rw = crop==="Maize"?"Ibigori":crop==="Beans"?"Ibishyimbo":"Umuceri";
+  const nextCrop_rw = crop==="Maize"?"Umuceri":"Ibigori";
 
   // Fertilizer amount recommendation
   const FERT_REC = {Maize:"DAP 0.5 kg/are at planting + CAN 0.3 kg/are at knee height",
-                    Beans:"DAP 0.3 kg/are at planting (avoid excess N)",
                     Rice:"Urea 0.5 kg/are at tillering + DAP 0.4 kg/are at transplanting"};
   const FERT_REC_RW = {Maize:"DAP 0.5 kg/are itewe + CAN 0.3 kg/are igihe ibigori bigeze ku mavi",
-                       Beans:"DAP 0.3 kg/are itewe (irinda azote nyinshi)",
                        Rice:"Urea 0.5 kg/are igihe byatangiye gushyira amashami + DAP 0.4 kg/are igihe byimurwa"};
 
   // Build recs array
@@ -340,7 +337,7 @@ export const T = {
     fullName:"Full Name",sector:"Sector",
     farmSizeHa:"Farm Size (ha)",
     areaPlantedHa:"Area Planted (ha) *",
-    plantingDate:"Planting Date *",
+    plantingDate:"Planting/Planted Date *",
     signingIn:"Signing in…",creatingAccount:"Creating account…",
     loginBtn:"→ Login",registerBtn:"Register as Farmer",
     alreadyHave:"Already have an account?",noAccount:"Don't have an account?",
@@ -432,7 +429,7 @@ export const T = {
     fullName:"Amazina Yose",sector:"Segiteri",
     farmSizeHa:"Ubuso bw'Akarima (ha)",
     areaPlantedHa:"Akarima Gatewe (ha) *",
-    plantingDate:"Itariki yo Gutera *",
+    plantingDate:"Itariki yo Gutera/Wateje *",
     signingIn:"Injira…",creatingAccount:"Fungura konti…",
     loginBtn:"→ Injira",registerBtn:"Iyandikishe nk'Umuhinzi",
     alreadyHave:"Usanzwe ufite konti?",noAccount:"Nta konti ufite?",
@@ -500,7 +497,7 @@ export const T = {
     adviceMessage:"Ubutumwa",sendToFarmers:"Ohereza",
     temperature:"Ubushyuhe",rainfall:"Imvura",humidity:"Ubuhehere",sunshine:"Izuba",
     selectLocation:"Hitamo aho biherereye…",selectSeason:"Hitamo igihe…",selectMonth:"Hitamo ukwezi…",
-    selectMonthFirst:"← Injiza itariki yo gutera",
+    selectMonthFirst:"← Injiza itariki yo gutera/wateje",
     offlineMode:"Offline — gukoresha simulation",
     soilInfo:"Amakuru y'Ubutaka",
     emailGmailRequired:"Kwiyandikisha nk'umuhinzi bisaba konti ya Gmail (irangira na @gmail.com) kugira ngo uone ijambo ry'ibanga ryawe.",

@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { T, API_BASE, SECTORS } from '../../constants/constants';
+import { useToast, ToastContainer } from '../../components/Common/Toast';
+import ConfirmModal from '../../components/Common/ConfirmModal';
 
 export default function DistrictAdminPanel({ user, lang }) {
   const t = T[lang];
+  const { toasts, showToast, removeToast } = useToast();
+  const [confirmConfig, setConfirmConfig] = useState(null);
   const [activeTab, setActiveTab] = useState('staff'); // 'staff', 'farmers', 'cooperatives'
   
   // Staff Management State
@@ -28,14 +32,35 @@ export default function DistrictAdminPanel({ user, lang }) {
   const [coopContact, setCoopContact] = useState('');
   const [coopPhone, setCoopPhone] = useState('');
   const [coopEmail, setCoopEmail] = useState('');
+  const [coopCell, setCoopCell] = useState(''); // Add cell selection
   const [coopLoading, setCoopLoading] = useState(false);
   const [coopStatus, setCoopStatus] = useState(null);
+  const [cells, setCells] = useState([]); // For cell dropdown
 
   useEffect(() => {
     if (activeTab === 'staff') fetchOfficers();
     if (activeTab === 'farmers') fetchFarmers();
-    if (activeTab === 'cooperatives') fetchCooperatives();
+    if (activeTab === 'cooperatives') {
+      fetchCooperatives();
+      fetchCells(); // Load cells when cooperatives tab is active
+    }
   }, [activeTab]);
+  
+  // Fetch cells for Gashora sector
+  const fetchCells = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/locations`);
+      const data = await res.json();
+      console.log('Locations API response:', data); // Debug log
+      if (data.locations) {
+        // data.locations is already an array of cells
+        setCells(data.locations);
+        console.log('Cells loaded:', data.locations.length);
+      }
+    } catch (e) {
+      console.log("Error fetching cells:", e);
+    }
+  };
 
   // ═══════════════════════════════════════════════════════════════════════════
   // STAFF MANAGEMENT FUNCTIONS
@@ -84,7 +109,7 @@ export default function DistrictAdminPanel({ user, lang }) {
           name,
           email,
           phone,
-          role: officerRole === 'admin' ? 'district' : 'sector',
+          role: officerRole, // Keep original: 'admin' or 'sector'
           sector: officerRole === 'sector' ? sector : 'Gashora',
           department: dept
         }),
@@ -166,6 +191,12 @@ export default function DistrictAdminPanel({ user, lang }) {
     if (!coopName.trim()) {
       return setCoopStatus({ type: 'err', msg: 'Cooperative name is required.' });
     }
+    if (!coopEmail.trim() || !coopEmail.includes('@')) {
+      return setCoopStatus({ type: 'err', msg: 'Valid leader email is required.' });
+    }
+    if (!coopCell) {
+      return setCoopStatus({ type: 'err', msg: 'Please select a cell.' });
+    }
     setCoopLoading(true);
     setCoopStatus(null);
     try {
@@ -176,13 +207,18 @@ export default function DistrictAdminPanel({ user, lang }) {
           name: coopName,
           contact_person: coopContact,
           contact_phone: coopPhone,
-          contact_email: coopEmail
+          contact_email: coopEmail,
+          cell_id: parseInt(coopCell), // Include cell_id
+          cell_name: cells.find(c => c.cell_id === parseInt(coopCell))?.cell_name
         }),
       });
       const data = await res.json();
       if (data.success) {
-        setCoopStatus({ type: 'ok', msg: 'Cooperative created successfully!' });
-        setCoopName(''); setCoopContact(''); setCoopPhone(''); setCoopEmail('');
+        setCoopStatus({ 
+          type: 'ok', 
+          msg: `Cooperative created! Registration: ${data.registration_number}. Leader ID: ${data.leader_id}. Email sent to ${coopEmail}.` 
+        });
+        setCoopName(''); setCoopContact(''); setCoopPhone(''); setCoopEmail(''); setCoopCell('');
         fetchCooperatives();
       } else {
         setCoopStatus({ type: 'err', msg: data.error || 'Failed to create cooperative.' });
@@ -191,21 +227,37 @@ export default function DistrictAdminPanel({ user, lang }) {
       setCoopStatus({ type: 'err', msg: 'Server connection failed.' });
     }
     setCoopLoading(false);
-    setTimeout(() => setCoopStatus(null), 5000);
+    setTimeout(() => setCoopStatus(null), 8000);
   };
 
-  const handleDeleteCooperative = async (coopId) => {
-    if (!confirm('Are you sure you want to delete this cooperative?')) return;
+  const handleDeleteCooperative = async (coopId, coopName) => {
+    setConfirmConfig({
+      type: 'danger',
+      title: lang === 'en' ? 'Delete Cooperative' : 'Gusiba Koperative',
+      message: lang === 'en'
+        ? `Are you sure you want to delete "${coopName}"?`
+        : `Uremeza gusiba "${coopName}"?`,
+      subMessage: lang === 'en'
+        ? 'This action cannot be undone. Cooperatives with active members cannot be deleted.'
+        : 'Iyi ni igikorwa kidashobora gusubirwaho. Koperative zifite abanyamuryango ntizishobora gusibwa.',
+      confirmLabel: lang === 'en' ? 'Yes, Delete' : 'Yego, Siba',
+      cancelLabel: lang === 'en' ? 'Cancel' : 'Kureka',
+      onConfirm: () => doDeleteCooperative(coopId),
+    });
+  };
+
+  const doDeleteCooperative = async (coopId) => {
     try {
       const res = await fetch(`${API_BASE}/api/cooperatives/${coopId}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
+        showToast(lang === 'en' ? 'Cooperative deleted successfully.' : 'Koperative yasibwe neza.', 'success');
         fetchCooperatives();
       } else {
-        alert(data.error || 'Cannot delete cooperative with active members.');
+        showToast(data.error || 'Cannot delete cooperative with active members.', 'error');
       }
     } catch (e) {
-      console.log("Error deleting cooperative:", e);
+      showToast('Connection error: ' + e.message, 'error');
     }
   };
 
@@ -225,7 +277,7 @@ export default function DistrictAdminPanel({ user, lang }) {
   });
 
   const roleBadge = (r) => {
-    if (r === 'district' || r === 'admin') return <span className="badge bg-blue">System Admin</span>;
+    if (r === 'district' || r === 'admin') return <span className="badge bg-blue">System Administrator</span>;
     if (r === 'sector') return <span className="badge bg-green">Sector Officer</span>;
     return <span className="badge bg-amber">{r}</span>;
   };
@@ -235,7 +287,8 @@ export default function DistrictAdminPanel({ user, lang }) {
   // ═══════════════════════════════════════════════════════════════════════════
 
   return (
-    <div className="fade-up" style={{ paddingBottom: 40 }}>
+    <>
+      <div className="fade-up" style={{ paddingBottom: 40 }}>
 
       {/* Tab Navigation */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 24, borderBottom: '2px solid var(--s200)', paddingBottom: 0 }}>
@@ -315,7 +368,7 @@ export default function DistrictAdminPanel({ user, lang }) {
                     onChange={e => setOfficerRole(e.target.value)}
                     style={{ accentColor: 'var(--g700)' }}
                   />
-                  <span style={{ fontSize: 14 }}>{lang === 'en' ? 'System Administrator' : 'Umuyobozi Mukuru'}</span>
+                  <span style={{ fontSize: 14 }}>{lang === 'en' ? 'System Administrator' : 'Umuyobozi wa Sisitemu'}</span>
                 </label>
               </div>
             </div>
@@ -610,7 +663,25 @@ export default function DistrictAdminPanel({ user, lang }) {
                 />
               </div>
               <div className="fgrp">
-                <label className="flabel">{lang === 'en' ? 'Contact Person' : 'Umuntu wo Guhamagara'}</label>
+                <label className="flabel">{lang === 'en' ? 'Cell' : 'Akagari'} *</label>
+                <select
+                  className="finput"
+                  value={coopCell}
+                  onChange={e => setCoopCell(e.target.value)}
+                >
+                  <option value="">{lang === 'en' ? 'Select Cell' : 'Hitamo Akagari'}</option>
+                  {cells.map(cell => (
+                    <option key={cell.cell_id} value={cell.cell_id}>
+                      {cell.cell_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="frow">
+              <div className="fgrp">
+                <label className="flabel">{lang === 'en' ? 'Leader Name' : 'Izina ry\'Umuyobozi'} *</label>
                 <input
                   className="finput"
                   value={coopContact}
@@ -618,11 +689,21 @@ export default function DistrictAdminPanel({ user, lang }) {
                   placeholder="e.g. Jean Habimana"
                 />
               </div>
+              <div className="fgrp">
+                <label className="flabel">{lang === 'en' ? 'Leader Email' : 'Email y\'Umuyobozi'} *</label>
+                <input
+                  className="finput"
+                  type="email"
+                  value={coopEmail}
+                  onChange={e => setCoopEmail(e.target.value)}
+                  placeholder="leader@gmail.com"
+                />
+              </div>
             </div>
 
             <div className="frow">
               <div className="fgrp">
-                <label className="flabel">{lang === 'en' ? 'Contact Phone' : 'Telefone'}</label>
+                <label className="flabel">{lang === 'en' ? 'Leader Phone' : 'Telefone y\'Umuyobozi'}</label>
                 <input
                   className="finput"
                   value={coopPhone}
@@ -631,14 +712,7 @@ export default function DistrictAdminPanel({ user, lang }) {
                 />
               </div>
               <div className="fgrp">
-                <label className="flabel">{lang === 'en' ? 'Contact Email' : 'Email'}</label>
-                <input
-                  className="finput"
-                  type="email"
-                  value={coopEmail}
-                  onChange={e => setCoopEmail(e.target.value)}
-                  placeholder="contact@cooperative.rw"
-                />
+                {/* Empty for spacing */}
               </div>
             </div>
 
@@ -658,7 +732,8 @@ export default function DistrictAdminPanel({ user, lang }) {
                 <thead style={{ background: 'var(--s100)', textAlign: 'left' }}>
                   <tr>
                     <th style={{ padding: '12px 16px' }}>Cooperative Name</th>
-                    <th style={{ padding: '12px 16px' }}>Contact</th>
+                    <th style={{ padding: '12px 16px' }}>Cell</th>
+                    <th style={{ padding: '12px 16px' }}>Leader</th>
                     <th style={{ padding: '12px 16px' }}>Members</th>
                     <th style={{ padding: '12px 16px' }}>Total Farm (ha)</th>
                     <th style={{ padding: '12px 16px' }}>Actions</th>
@@ -670,11 +745,17 @@ export default function DistrictAdminPanel({ user, lang }) {
                       <td style={{ padding: '12px 16px', fontWeight: 700 }}>
                         <div>
                           <div>{coop.cooperative_name}</div>
-                          <div style={{ fontSize: 10, fontWeight: 400, color: 'var(--s400)' }}>ID: {coop.cooperative_id}</div>
+                          <div style={{ fontSize: 10, fontWeight: 400, color: 'var(--s400)' }}>
+                            Reg: {coop.registration_number || 'N/A'} · ID: {coop.cooperative_id}
+                          </div>
                         </div>
                       </td>
                       <td style={{ padding: '12px 16px', color: 'var(--s600)' }}>
-                        <div>{coop.contact_person || '—'}</div>
+                        {coop.cell_name || '—'}
+                      </td>
+                      <td style={{ padding: '12px 16px', color: 'var(--s600)' }}>
+                        <div style={{ fontSize: 11, fontWeight: 600 }}>ID: {coop.leader_farmer_id || '—'}</div>
+                        <div>{coop.contact_email || '—'}</div>
                         <div style={{ fontSize: 10 }}>{coop.contact_phone || '—'}</div>
                       </td>
                       <td style={{ padding: '12px 16px', color: 'var(--s600)' }}>
@@ -685,7 +766,7 @@ export default function DistrictAdminPanel({ user, lang }) {
                       </td>
                       <td style={{ padding: '12px 16px' }}>
                         <button
-                          onClick={() => handleDeleteCooperative(coop.cooperative_id)}
+                          onClick={() => handleDeleteCooperative(coop.cooperative_id, coop.cooperative_name)}
                           style={{
                             padding: '6px 12px',
                             fontSize: 11,
@@ -721,6 +802,13 @@ export default function DistrictAdminPanel({ user, lang }) {
         </>
       )}
 
-    </div>
+      </div>
+      
+      {/* Confirm Modal */}
+      <ConfirmModal config={confirmConfig} onClose={() => setConfirmConfig(null)} />
+      
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+    </>
   );
 }

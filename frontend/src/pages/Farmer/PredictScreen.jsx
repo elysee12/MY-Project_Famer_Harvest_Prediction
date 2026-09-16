@@ -55,6 +55,8 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [offline, setOffline] = useState(false);
+  const [seasonConfig, setSeasonConfig] = useState(null); // Cooperative season config
+  const [configLoading, setConfigLoading] = useState(false);
   const [form, setForm] = useState({
     crop: "",
     sector: user.sector || "",
@@ -78,6 +80,31 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
   });
 
   const set = useCallback((k, v) => setForm(f => ({ ...f, [k]: v })), []);
+
+  // Fetch season configuration for cooperative members
+  useEffect(() => {
+    if (user.role === 'cooperative' && user.cooperative_id) {
+      setConfigLoading(true);
+      fetch(`${API_BASE}/api/cooperative/season-config/${user.cooperative_id}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d.success && d.has_config && d.config) {
+            setSeasonConfig(d.config);
+            // Pre-fill form with config values
+            setForm(f => ({
+              ...f,
+              crop: d.config.crop_type,
+              seedVariety: d.config.seed_variety,
+              fertilizerType: d.config.fertilizer_type,
+              fertilizer: d.config.fertilizer_type !== 'No Fertilizer',
+              irrigation: d.config.has_irrigation
+            }));
+          }
+          setConfigLoading(false);
+        })
+        .catch(() => { setConfigLoading(false); });
+    }
+  }, [user.role, user.cooperative_id]);
 
   // ── Live weather from Open-Meteo ──────────────────────────────────────────
   const [liveWeather, setLiveWeather] = useState(null);
@@ -114,7 +141,7 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
 
   const isLiveClimate = liveWeather?.source === 'open-meteo-live';
 
-  // ── Planting date logic ────────────────────────────────────────────────────
+  // ── Planting/planted date logic ────────────────────────────────────────────────────
   const today = new Date();
   today.setHours(0,0,0,0);
 
@@ -328,6 +355,55 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
         <i className="bi bi-wifi-off"></i> {t.offlineMode}
       </div>}
 
+      {/* Cooperative Configuration Banner */}
+      {user.role === 'cooperative' && seasonConfig && (
+        <div style={{
+          margin: "0 24px 16px",
+          background: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)',
+          border: '2px solid #0891b2',
+          borderRadius: 14,
+          padding: '16px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14
+        }}>
+          <div style={{
+            width: 44,
+            height: 44,
+            borderRadius: '50%',
+            background: '#0891b2',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            <i className="bi bi-building" style={{ fontSize: 20, color: 'white' }}></i>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 800, fontSize: 14, color: '#0c4a6e', marginBottom: 3 }}>
+              {lang === 'en' ? '🌾 Cooperative Settings Active' : '🌾 Amakuru ya Koperative Arakora'}
+            </div>
+            <div style={{ fontSize: 12, color: '#075985' }}>
+              {lang === 'en'
+                ? `Using ${seasonConfig.season_name} configuration from ${user.cooperative_name || 'your cooperative'}`
+                : `Ukoresha amakuru ya ${seasonConfig.season_name} avuye muri ${user.cooperative_name || 'koperative yawe'}`}
+            </div>
+          </div>
+          <div style={{
+            background: 'rgba(8, 145, 178, 0.15)',
+            borderRadius: 8,
+            padding: '6px 12px',
+            fontSize: 11,
+            fontWeight: 700,
+            color: '#0c4a6e',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}>
+            {seasonConfig.crop_type}
+          </div>
+        </div>
+      )}
+
       <div className="scroll fade-up predict-content">
         {step === 1 ? (
           <div className="modern-form-container">
@@ -339,15 +415,60 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
             {/* Crop selection */}
             <div className="m-fgrp">
               <label className="m-flabel">{t.selectCrop}</label>
-              <div className="modern-crop-selector">
-                {CROPS.map(c => (
-                  <button key={c} className={`m-crop-card ${form.crop === c ? "active" : ""}`} onClick={() => set("crop", c)}>
-                    <div className="m-crop-icon"><CropIcon name={c} size={32} /></div>
-                    <span className="m-crop-name">{c}</span>
-                    {form.crop === c && <div className="m-crop-check"><i className="bi bi-check-lg"></i></div>}
-                  </button>
-                ))}
-              </div>
+              {user.role === 'cooperative' && seasonConfig ? (
+                <div style={{
+                  background: '#f0f9ff',
+                  border: '2px solid #0891b2',
+                  borderRadius: 12,
+                  padding: '16px 20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12
+                }}>
+                  <div style={{
+                    width: 48,
+                    height: 48,
+                    background: '#e0f2fe',
+                    borderRadius: 10,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <CropIcon name={form.crop} size={28} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: '#0c4a6e', marginBottom: 2 }}>
+                      {form.crop}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#075985', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <i className="bi bi-lock-fill"></i>
+                      {lang === 'en'
+                        ? 'Set by cooperative leader'
+                        : 'Byashyizweho n\'umuyobozi wa koperative'}
+                    </div>
+                  </div>
+                  <div style={{
+                    background: '#0891b2',
+                    color: 'white',
+                    borderRadius: 8,
+                    padding: '6px 12px',
+                    fontSize: 11,
+                    fontWeight: 700
+                  }}>
+                    {lang === 'en' ? 'LOCKED' : 'YAFUNZE'}
+                  </div>
+                </div>
+              ) : (
+                <div className="modern-crop-selector">
+                  {CROPS.map(c => (
+                    <button key={c} className={`m-crop-card ${form.crop === c ? "active" : ""}`} onClick={() => set("crop", c)}>
+                      <div className="m-crop-icon"><CropIcon name={c} size={32} /></div>
+                      <span className="m-crop-name">{c}</span>
+                      {form.crop === c && <div className="m-crop-check"><i className="bi bi-check-lg"></i></div>}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="m-form-grid">
@@ -404,7 +525,7 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
                 </div>
               </div>
 
-              {/* Planting Date */}
+              {/* Planting/Planted Date */}
               <div className="m-fgrp">
                 <label className="m-flabel">{t.plantingDate}</label>
                 <div className="m-input-wrapper">
@@ -456,17 +577,57 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
               <div className="m-fgrp">
                 <label className="m-flabel">{t.fertilizerUsed}</label>
                 <div className="modern-toggle">
-                  <button className={`m-toggle-btn ${form.fertilizer ? "active" : ""}`} onClick={() => set("fertilizer", true)}>{lang === "en" ? "Yes" : "Yego"}</button>
-                  <button className={`m-toggle-btn ${!form.fertilizer ? "active" : ""}`} onClick={() => set("fertilizer", false)}>{lang === "en" ? "No" : "Oya"}</button>
+                  <button 
+                    className={`m-toggle-btn ${form.fertilizer ? "active" : ""}`} 
+                    onClick={() => set("fertilizer", true)}
+                    disabled={user.role === 'cooperative' && seasonConfig}
+                    style={{ cursor: (user.role === 'cooperative' && seasonConfig) ? 'not-allowed' : 'pointer', opacity: (user.role === 'cooperative' && seasonConfig && form.fertilizer) ? 1 : (user.role === 'cooperative' && seasonConfig) ? 0.5 : 1 }}
+                  >
+                    {lang === "en" ? "Yes" : "Yego"}
+                  </button>
+                  <button 
+                    className={`m-toggle-btn ${!form.fertilizer ? "active" : ""}`} 
+                    onClick={() => set("fertilizer", false)}
+                    disabled={user.role === 'cooperative' && seasonConfig}
+                    style={{ cursor: (user.role === 'cooperative' && seasonConfig) ? 'not-allowed' : 'pointer', opacity: (user.role === 'cooperative' && seasonConfig && !form.fertilizer) ? 1 : (user.role === 'cooperative' && seasonConfig) ? 0.5 : 1 }}
+                  >
+                    {lang === "en" ? "No" : "Oya"}
+                  </button>
                 </div>
+                {user.role === 'cooperative' && seasonConfig && (
+                  <div style={{ fontSize: 11, color: '#075985', marginTop: 6 }}>
+                    <i className="bi bi-lock-fill" style={{ marginRight: 4 }}></i>
+                    {lang === 'en' ? 'Set by cooperative' : 'Byashyizweho na koperative'}
+                  </div>
+                )}
               </div>
 
               <div className="m-fgrp">
                 <label className="m-flabel">{t.irrigationUsed}</label>
                 <div className="modern-toggle">
-                  <button className={`m-toggle-btn ${form.irrigation ? "active" : ""}`} onClick={() => set("irrigation", true)}>{lang === "en" ? "Yes" : "Yego"}</button>
-                  <button className={`m-toggle-btn ${!form.irrigation ? "active" : ""}`} onClick={() => set("irrigation", false)}>{lang === "en" ? "No" : "Oya"}</button>
+                  <button 
+                    className={`m-toggle-btn ${form.irrigation ? "active" : ""}`} 
+                    onClick={() => set("irrigation", true)}
+                    disabled={user.role === 'cooperative' && seasonConfig}
+                    style={{ cursor: (user.role === 'cooperative' && seasonConfig) ? 'not-allowed' : 'pointer', opacity: (user.role === 'cooperative' && seasonConfig && form.irrigation) ? 1 : (user.role === 'cooperative' && seasonConfig) ? 0.5 : 1 }}
+                  >
+                    {lang === "en" ? "Yes" : "Yego"}
+                  </button>
+                  <button 
+                    className={`m-toggle-btn ${!form.irrigation ? "active" : ""}`} 
+                    onClick={() => set("irrigation", false)}
+                    disabled={user.role === 'cooperative' && seasonConfig}
+                    style={{ cursor: (user.role === 'cooperative' && seasonConfig) ? 'not-allowed' : 'pointer', opacity: (user.role === 'cooperative' && seasonConfig && !form.irrigation) ? 1 : (user.role === 'cooperative' && seasonConfig) ? 0.5 : 1 }}
+                  >
+                    {lang === "en" ? "No" : "Oya"}
+                  </button>
                 </div>
+                {user.role === 'cooperative' && seasonConfig && (
+                  <div style={{ fontSize: 11, color: '#075985', marginTop: 6 }}>
+                    <i className="bi bi-lock-fill" style={{ marginRight: 4 }}></i>
+                    {lang === 'en' ? 'Set by cooperative' : 'Byashyizweho na koperative'}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -477,28 +638,52 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
                   <i className="bi bi-droplet-fill" style={{ marginRight:6 }}></i>
                   {lang === 'en' ? 'Fertilizer Type' : 'Ubwoko bw\'Ifumbire'}
                 </label>
-                <div className="modern-chip-selector" style={{ marginBottom:12 }}>
-                  {[
-                    { val:'None',    label:'None',    hint: lang==='en'?'No fertilizer':'Nta fumbire',    askAmt: false },
-                    { val:'DAP',     label:'DAP',     hint: lang==='en'?'At planting':'Igihe cyo gutera',   askAmt: true  },
-                    { val:'NPK',     label:'NPK',     hint: lang==='en'?'Balanced':'Yuzuye',                askAmt: true  },
-                    { val:'Urea',    label:'Urea',    hint: lang==='en'?'Top dressing':'Nyuma yo gutera',   askAmt: true  },
-                    { val:'Organic', label:'Organic', hint: lang==='en'?'Compost/Manure':'Imborera/Amase', askAmt: false },
-                    { val:'Mixed',   label:'Mixed',   hint: lang==='en'?'Organic+Inorganic':'Ivanze',       askAmt: true  },
-                  ].map(s => (
-                    <button key={s.val}
-                      className={`m-chip ${form.fertilizerType === s.val ? 'active' : ''}`}
-                      onClick={() => set('fertilizerType', s.val)}
-                      style={{ flexDirection:'column', gap:2, padding:'8px 12px' }}
-                    >
-                      <span style={{ fontWeight:800 }}>{s.label}</span>
-                      <span style={{ fontSize:10, opacity:.75 }}>{s.hint}</span>
-                    </button>
-                  ))}
-                </div>
+                {user.role === 'cooperative' && seasonConfig ? (
+                  <div style={{
+                    background: '#f0f9ff',
+                    border: '2px solid #0891b2',
+                    borderRadius: 10,
+                    padding: '14px 18px',
+                    marginBottom: 12,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: '#0c4a6e' }}>
+                        {form.fertilizerType}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#075985', marginTop: 2 }}>
+                        <i className="bi bi-lock-fill" style={{ marginRight: 4 }}></i>
+                        {lang === 'en' ? 'Provided by cooperative' : 'Bivuye muri koperative'}
+                      </div>
+                    </div>
+                    <i className="bi bi-droplet-fill" style={{ fontSize: 22, color: '#0891b2', opacity: 0.5 }}></i>
+                  </div>
+                ) : (
+                  <div className="modern-chip-selector" style={{ marginBottom:12 }}>
+                    {[
+                      { val:'None',    label:'None',    hint: lang==='en'?'No fertilizer':'Nta fumbire',    askAmt: false },
+                      { val:'DAP',     label:'DAP',     hint: lang==='en'?'At planting':'Igihe cyo gutera',   askAmt: true  },
+                      { val:'NPK',     label:'NPK',     hint: lang==='en'?'Balanced':'Yuzuye',                askAmt: true  },
+                      { val:'Urea',    label:'Urea',    hint: lang==='en'?'Top dressing':'Nyuma yo gutera',   askAmt: true  },
+                      { val:'Organic', label:'Organic', hint: lang==='en'?'Compost/Manure':'Imborera/Amase', askAmt: false },
+                      { val:'Mixed',   label:'Mixed',   hint: lang==='en'?'Organic+Inorganic':'Ivanze',       askAmt: true  },
+                    ].map(s => (
+                      <button key={s.val}
+                        className={`m-chip ${form.fertilizerType === s.val ? 'active' : ''}`}
+                        onClick={() => set('fertilizerType', s.val)}
+                        style={{ flexDirection:'column', gap:2, padding:'8px 12px' }}
+                      >
+                        <span style={{ fontWeight:800 }}>{s.label}</span>
+                        <span style={{ fontSize:10, opacity:.75 }}>{s.hint}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
 
-                {/* Amount — only for non-organic and non-none */}
-                {form.fertilizerType && form.fertilizerType !== 'Organic' && form.fertilizerType !== 'None' && (
+                {/* Amount — only for non-organic and non-none AND not cooperative */}
+                {form.fertilizerType && form.fertilizerType !== 'Organic' && form.fertilizerType !== 'None' && !(user.role === 'cooperative' && seasonConfig) && (
                   <div className="fade-up">
                     <label className="m-flabel" style={{ color:'var(--g800)' }}>
                       <i className="bi bi-rulers" style={{ marginRight:6 }}></i>
@@ -552,23 +737,46 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
                   <i className="bi bi-flower2" style={{ marginRight:6 }}></i>
                   {lang === 'en' ? 'Seed Variety' : 'Ubwoko bw\'Imbuto'}
                 </label>
-                <div className="modern-chip-selector">
-                  {[
-                    { val:'Improved', icon: <i className="bi bi-star-fill"></i>, label: lang==='en'?'Improved':'Nziza', hint: lang==='en'?'+15% yield':'Umusaruro +15%' },
-                    { val:'Hybrid',   icon: <i className="bi bi-stars"></i>, label: lang==='en'?'Hybrid':'Hybrid',  hint: lang==='en'?'+20% yield':'Umusaruro +20%' },
-                    { val:'Local',    icon: <i className="bi bi-flower1"></i>, label: lang==='en'?'Local':'Gakondo',   hint: lang==='en'?'Standard':'Isanzwe' },
-                  ].map(s => (
-                    <button key={s.val}
-                      className={`m-chip ${form.seedVariety === s.val ? 'active' : ''}`}
-                      onClick={() => set('seedVariety', s.val)}
-                      style={{ flexDirection:'column', gap:2, padding:'10px 14px' }}
-                    >
-                      <span style={{ fontSize:18 }}>{s.icon}</span>
-                      <span style={{ fontWeight:800 }}>{s.label}</span>
-                      <span style={{ fontSize:10, opacity:.75 }}>{s.hint}</span>
-                    </button>
-                  ))}
-                </div>
+                {user.role === 'cooperative' && seasonConfig ? (
+                  <div style={{
+                    background: '#f0f9ff',
+                    border: '2px solid #0891b2',
+                    borderRadius: 10,
+                    padding: '14px 18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: '#0c4a6e' }}>
+                        {form.seedVariety}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#075985', marginTop: 2 }}>
+                        <i className="bi bi-lock-fill" style={{ marginRight: 4 }}></i>
+                        {lang === 'en' ? 'Provided by cooperative' : 'Bivuye muri koperative'}
+                      </div>
+                    </div>
+                    <i className="bi bi-flower2" style={{ fontSize: 22, color: '#0891b2', opacity: 0.5 }}></i>
+                  </div>
+                ) : (
+                  <div className="modern-chip-selector">
+                    {[
+                      { val:'Improved', icon: <i className="bi bi-star-fill"></i>, label: lang==='en'?'Improved':'Nziza', hint: lang==='en'?'+15% yield':'Umusaruro +15%' },
+                      { val:'Hybrid',   icon: <i className="bi bi-stars"></i>, label: lang==='en'?'Hybrid':'Hybrid',  hint: lang==='en'?'+20% yield':'Umusaruro +20%' },
+                      { val:'Local',    icon: <i className="bi bi-flower1"></i>, label: lang==='en'?'Local':'Gakondo',   hint: lang==='en'?'Standard':'Isanzwe' },
+                    ].map(s => (
+                      <button key={s.val}
+                        className={`m-chip ${form.seedVariety === s.val ? 'active' : ''}`}
+                        onClick={() => set('seedVariety', s.val)}
+                        style={{ flexDirection:'column', gap:2, padding:'10px 14px' }}
+                      >
+                        <span style={{ fontSize:18 }}>{s.icon}</span>
+                        <span style={{ fontWeight:800 }}>{s.label}</span>
+                        <span style={{ fontSize:10, opacity:.75 }}>{s.hint}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -608,7 +816,7 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
               </div>
             </div>
 
-            {/* Planting Date Status Card */}
+            {/* Planting/Planted Date Status Card */}
             {plantingStatus && (
               <div className="fade-up" style={{
                 background: plantingStatus.diffDays > 0

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { LuMessageSquare } from 'react-icons/lu';
 
 export default function SmsNotification({ sms, onClear }) {
   const [closing, setClosing] = useState(false);
@@ -22,7 +23,7 @@ export default function SmsNotification({ sms, onClear }) {
   return (
     <div className="sms-overlay">
       <div className={`sms-card ${closing ? "hide" : ""}`}>
-        <div className="sms-icon-bx"><i className="bi bi-chat-dots"></i></div>
+        <div className="sms-icon-bx"><LuMessageSquare size={22} /></div>
         <div className="sms-content" onClick={handleDismiss}>
           <div className="sms-header">
             <span className="sms-app">Messages</span>

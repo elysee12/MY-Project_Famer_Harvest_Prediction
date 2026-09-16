@@ -259,7 +259,7 @@ const T = {
     phone:"Phone / Farmer ID",password:"Password",confirmPw:"Confirm Password",
     fullName:"Full Name",sector:"Sector",
     farmSizeHa:"Farm Size (ha) *",areaPlantedHa:"Area Planted (ha) *",
-    plantingDate:"Planting Date *",
+    plantingDate:"Planting/Planted Date *",
     signingIn:"Signing in…",creatingAccount:"Creating account…",
     loginBtn:"→ Login",registerBtn:"✓ Create Account",
     alreadyHave:"Already have an account?",noAccount:"Don't have an account?",
@@ -316,7 +316,7 @@ const T = {
     adviceMessage:"Advice Message",sendToFarmers:"📢 Send",
     temperature:"Temperature",rainfall:"Rainfall",humidity:"Humidity",sunshine:"Sunshine",
     selectLocation:"Select location…",selectSeason:"Select season…",selectMonth:"Select month…",
-    selectMonthFirst:"← Select planting date to load climate",
+    selectMonthFirst:"← Select planting/planted date to load climate",
     offlineMode:"⚠️ Offline mode — using local simulation",
     soilInfo:"Soil Info",
   },
@@ -918,7 +918,7 @@ function PredictScreen({user,onNavigate,onResult,lang,setLang}) {
               </div>
             </div>
 
-            {/* Planting Date → auto fills Month */}
+            {/* Planting/Planted Date → auto fills Month */}
             <div className="frow">
               <div>
                 <label className="flabel">{t.plantingDate}</label>

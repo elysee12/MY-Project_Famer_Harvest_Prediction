@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { T, CLIMATE, API_BASE } from '../../constants/constants';
 import Topbar from '../../components/Common/Topbar';
+import { LuCloudSun, LuRefreshCw, LuClock, LuWifiOff, LuCast as LuBroadcast } from 'react-icons/lu';
 
 // WMO weather code → icon + label
 function weatherInfo(code, lang) {
@@ -20,7 +21,7 @@ function weatherInfo(code, lang) {
 const DAYS_EN = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const DAYS_RW = ['Cyu','Kub','Gat','Kane','Gat','Gat','Cya'];
 
-export default function WeatherScreen({ onNavigate, lang, setLang, user }) {
+export default function WeatherScreen({ onNavigate, lang, setLang, user, hideLangBtn = false }) {
   const t = T[lang];
   const sector = user?.sector || 'Gashora';
 
@@ -64,11 +65,12 @@ export default function WeatherScreen({ onNavigate, lang, setLang, user }) {
   return (
     <>
       <Topbar
-        title={<><i className="bi bi-cloud-sun"></i> {t.weatherTitle}</>}
+        title={<><LuCloudSun size={18} /> {t.weatherTitle}</>}
         sub={`${sector} · Bugesera`}
         onBack={() => onNavigate('dashboard')}
         lang={lang}
         setLang={setLang}
+        hideLangBtn={hideLangBtn}
       />
       <div className="scroll fade-up">
 
@@ -85,7 +87,7 @@ export default function WeatherScreen({ onNavigate, lang, setLang, user }) {
               </div>
               <div style={{ fontSize: 11, opacity: .7, display: 'flex', alignItems: 'center', gap: 6 }}>
                 {loading ? (
-                  <><i className="bi bi-arrow-repeat spin"></i> {lang === 'en' ? 'Fetching live data…' : 'Gufata amakuru mazima…'}</>
+                  <><LuRefreshCw className="spin" size={14} /> {lang === 'en' ? 'Fetching live data…' : 'Gufata amakuru mazima…'}</>
                 ) : isLive ? (
                   <>
                     <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#fbbf24', display: 'inline-block' }}></span>
@@ -97,23 +99,23 @@ export default function WeatherScreen({ onNavigate, lang, setLang, user }) {
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <button onClick={fetchWeather} style={{
+                <button onClick={fetchWeather} style={{
                 background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 99,
                 color: 'white', padding: '6px 12px', fontSize: 12, cursor: 'pointer', fontWeight: 700
               }}>
-                <i className="bi bi-arrow-clockwise"></i> {lang === 'en' ? 'Refresh' : 'Vugurura'}
+                <LuRefreshCw size={14} /> {lang === 'en' ? 'Refresh' : 'Vugurura'}
               </button>
             </div>
           </div>
 
           {loading ? (
             <div style={{ textAlign: 'center', padding: '20px 0', opacity: .7 }}>
-              <i className="bi bi-cloud-sun spin" style={{ fontSize: 32, display: 'block', marginBottom: 8 }}></i>
+              <LuCloudSun className="spin" size={32} style={{ display: 'block', marginBottom: 8 }} />
               {lang === 'en' ? 'Loading live weather from Open-Meteo…' : 'Gutegereza amakuru y\'ikirere ya Open-Meteo…'}
             </div>
           ) : error ? (
             <div style={{ background: 'rgba(255,255,255,.1)', borderRadius: 12, padding: '14px', textAlign: 'center' }}>
-              <i className="bi bi-wifi-off" style={{ fontSize: 24, display: 'block', marginBottom: 6 }}></i>
+              <LuWifiOff size={24} style={{ display: 'block', marginBottom: 6 }} />
               <div style={{ fontSize: 13 }}>{error}</div>
               <button onClick={fetchWeather} style={{ marginTop: 10, background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 99, color: 'white', padding: '6px 16px', cursor: 'pointer', fontSize: 12 }}>
                 {lang === 'en' ? 'Try Again' : 'Ongera Ugerageze'}
@@ -132,7 +134,7 @@ export default function WeatherScreen({ onNavigate, lang, setLang, user }) {
                   </div>
                 </div>
                 <div style={{ fontSize: 52, opacity: .85 }}>
-                  <i className={`bi ${current ? weatherInfo(current.weathercode, lang).icon : 'bi-cloud-sun-fill'}`}></i>
+                  <LuCloudSun size={28} />
                 </div>
               </div>
 

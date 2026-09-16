@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { T, API_BASE, CROP_BENCH, SECTORS, fmtDate } from '../../constants/constants';
 import Sidebar from '../../components/Common/Sidebar';
 import Topbar from '../../components/Common/Topbar';
+import { LuBuilding2 as LuBuildings, LuLogOut as LuBoxArrowRight, LuPiggyBank as LuBank } from 'react-icons/lu';
 import PredictionDetailView from '../SectorOfficer/PredictionDetailView';
 import FarmerDetailView from '../SectorOfficer/FarmerDetailView';
 import DistrictSectors from './DistrictSectors';
 import DistrictReports from './DistrictReports';
 import DistrictAdminPanel from './DistrictAdminPanel';
 import DistrictOverview from './DistrictOverview';
+import OfficerProfile from './OfficerProfile';
 
 export default function DistrictAdminDashboard({ user, onLogout, lang, setLang }) {
   const t = T[lang];
@@ -84,6 +86,7 @@ export default function DistrictAdminDashboard({ user, onLogout, lang, setLang }
       case "sectors": return <DistrictSectors selectedSectorId={selectedSectorId} setSelectedSectorId={setSelectedSectorId} setSelectedFarmerId={setSelectedFarmerId} setSelectedPred={setSelectedPred} lang={lang} user={user} />;
       case "reports": return <DistrictReports user={user} lang={lang} />;
       case "admin": return <DistrictAdminPanel user={user} lang={lang} />;
+      case "profile": return <OfficerProfile user={user} onLogout={onLogout} onBack={() => setTab('overview')} lang={lang} setLang={setLang} />;
       default: return null;
     }
   };
@@ -102,16 +105,16 @@ export default function DistrictAdminDashboard({ user, onLogout, lang, setLang }
           <Topbar
             title={
               <div className="dash-header-clean">
-                <span className="dash-header-icon" style={{ background: '#ccfbf1', color: '#0d9488' }}><i className="bi bi-buildings"></i></span>
+                <span className="dash-header-icon" style={{ background: '#ccfbf1', color: '#0d9488' }}><LuBuildings size={24} /></span>
                 <div className="dash-header-text">
-                  <h1 className="dash-title">{lang === "en" ? "System Admin Dashboard" : "Incumbane y'Umuyobozi Mukuru"}</h1>
+                  <h1 className="dash-title">{lang === "en" ? "System Administrator Dashboard" : "Incumbane y'Umuyobozi wa Sisitemu"}</h1>
                   <p className="dash-subtitle">Gashora Sector · Bugesera District</p>
                 </div>
               </div>
             }
             onBack={isDetail ? () => { setSelectedPred(null); setSelectedFarmerId(null); } : (selectedSectorId ? () => setSelectedSectorId(null) : null)}
             lang={lang} setLang={setLang}
-            actions={<div className="dash-actions"><button className="dash-action-btn" onClick={onLogout} title={t.logout}><i className="bi bi-box-arrow-right"></i></button></div>}
+            actions={<div className="dash-actions"><button className="dash-action-btn" onClick={onLogout} title={t.logout}><LuBoxArrowRight size={18} /></button></div>}
           />
           <div className="scroll fade-up">
             {/* Welcome */}
@@ -125,7 +128,7 @@ export default function DistrictAdminDashboard({ user, onLogout, lang, setLang }
                     {lang === "en" ? "Overseeing District-wide agriculture in" : "Gucunga ubuhinzi mu Karere ka"} <strong>Bugesera</strong>
                   </p>
                 </div>
-                <div className="welcome-illustration" style={{ fontSize: "60px" }}><i className="bi bi-bank"></i></div>
+                <div className="welcome-illustration" style={{ fontSize: "60px" }}><LuBank size={60} /></div>
               </div>
             )}
             {/* Underline tab nav */}

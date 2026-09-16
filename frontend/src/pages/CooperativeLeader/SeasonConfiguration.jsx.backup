@@ -1,0 +1,598 @@
+import React, { useState, useEffect } from 'react';
+import { T, API_BASE } from '../../constants/constants';
+import { LuLeaf, LuDroplet, LuSprout, LuCircleCheck, LuCircleAlert, LuEdit2, LuTrash2, LuHistory } from 'react-icons/lu';
+import { useToast, ToastContainer } from '../../components/Common/Toast';
+import ConfirmModal from '../../components/Common/ConfirmModal';
+
+export default function SeasonConfiguration({ user, lang }) {
+  const t = T[lang];
+  const { toasts, showToast, removeToast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [configsLoading, setConfigsLoading] = useState(true);
+  const [allConfigs, setAllConfigs] = useState([]);
+  const [activeConfig, setActiveConfig] = useState(null);
+  const [editingConfigId, setEditingConfigId] = useState(null);
+  const [confirmConfig, setConfirmConfig] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  
+  const [form, setForm] = useState({
+    season_name: '',
+    crop_type: 'Rice', // Default for rice cooperatives
+    seed_variety: 'Kigoli',
+    fertilizer_type: 'DAP',
+    has_irrigation: true
+  });
+  
+  const cooperativeId = user.cooperative_id;
+  const cooperativeName = user.cooperative_name || 'Your Cooperative';
+  
+  // Detect crop type from cooperative name
+  useEffect(() => {
+    if (cooperativeName.toLowerCase().includes('rice')) {
+      setForm(f => ({ ...f, crop_type: 'Rice' }));
+    } else if (cooperativeName.toLowerCase().includes('maize')) {
+      setForm(f => ({ ...f, crop_type: 'Maize' }));
+    }
+  }, [cooperativeName]);
+  
+  // Fetch all configurations
+  useEffect(() => {
+    if (!cooperativeId) return;
+    fetchAllConfigurations();
+  }, [cooperativeId]);
+  
+  const fetchAllConfigurations = async () => {
+    setConfigsLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/cooperative/season-configs/${cooperativeId}`);
+      const data = await res.json();
+      
+      if (data.success) {
+        setAllConfigs(data.configurations || []);
+        const active = data.configurations?.find(c => c.is_active);
+        setActiveConfig(active || null);
+      }
+    } catch (e) {
+      console.error('Failed to fetch configurations:', e);
+    }
+    setConfigsLoading(false);
+  };
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!form.season_name.trim()) {
+      showToast(
+        lang === 'en' ? 'Please enter a season name' : "Andika izina ry'igihe",
+        'warning'
+      );
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      const res = await fetch(`${API_BASE}/api/cooperative/season-config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cooperative_id: cooperativeId,
+          season_name: form.season_name,
+          crop_type: form.crop_type,
+          seed_variety: form.seed_variety,
+          fertilizer_type: form.fertilizer_type,
+          has_irrigation: form.has_irrigation
+        })
+      });
+      
+      const data = await res.json();
+      
+      if (data.success) {
+        showToast(
+          lang === 'en' ? 'Configuration saved successfully!' : 'Byabitswe Neza!',
+          'success'
+        );
+        await fetchAllConfigurations();
+        setShowForm(false);
+        setEditingConfigId(null);
+        // Reset form
+        setForm({
+          season_name: '',
+          crop_type: cooperativeName.toLowerCase().includes('rice') ? 'Rice' : 'Maize',
+          seed_variety: cooperativeName.toLowerCase().includes('rice') ? 'Kigoli' : 'SC627',
+          fertilizer_type: 'DAP',
+          has_irrigation: true
+        });
+      } else {
+        showToast(data.error || 'Failed to save configuration', 'error');
+      }
+    } catch (e) {
+      showToast('Error: ' + e.message, 'error');
+    }
+    
+    setLoading(false);
+  };
+  
+  const handleEdit = (config) => {
+    setEditingConfigId(config.config_id);
+    setForm({
+      season_name: config.season_name,
+      crop_type: config.crop_type,
+      seed_variety: config.seed_variety,
+      fertilizer_type: config.fertilizer_type,
+      has_irrigation: Boolean(config.has_irrigation)
+    });
+    setShowForm(true);
+  };
+  
+  const handleDelete = (config) => {
+    setConfirmConfig({
+      type: 'danger',
+      title: lang === 'en' ? 'Delete Configuration' : 'Gusiba Amakuru',
+      message: lang === 'en'
+        ? `Are you sure you want to delete the configuration for "${config.season_name}"?`
+        : `Uremeza gusiba amakuru ya "${config.season_name}"?`,
+      subMessage: lang === 'en'
+        ? 'This action cannot be undone.'
+        : 'Iyi gikorwa ntishobora gusubirwaho.',
+      confirmLabel: lang === 'en' ? 'Delete' : 'Siba',
+      cancelLabel: lang === 'en' ? 'Cancel' : 'Kureka',
+      onConfirm: () => doDelete(config.config_id),
+    });
+  };
+  
+  const doDelete = async (configId) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/cooperative/season-config/${configId}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        showToast(
+          lang === 'en' ? 'Configuration deleted successfully' : 'Byasibwe neza',
+          'success'
+        );
+        await fetchAllConfigurations();
+      } else {
+        showToast(data.error || 'Failed to delete', 'error');
+      }
+    } catch (e) {
+      showToast('Error: ' + e.message, 'error');
+    }
+  };
+  
+  // Seed varieties by crop
+  const seedVarieties = {
+    Rice: ['Kigoli', 'Yunani', 'Intsinzi', 'Hybrid IR64', 'Local'],
+    Maize: ['SC627', 'PHB30G19', 'ZM521', 'Improved', 'Local']
+  };
+  
+  const currentVarieties = seedVarieties[form.crop_type] || seedVarieties.Rice;
+  
+  return (
+    <div style={{ maxWidth: 800, margin: '0 auto', padding: '24px' }}>
+      {/* Header */}
+      <div style={{
+        background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 100%)',
+        borderRadius: 16,
+        padding: '28px 32px',
+        marginBottom: 24,
+        color: 'white'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12 }}>
+          <div style={{
+            width: 56,
+            height: 56,
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <LuLeaf size={28} />
+          </div>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800 }}>
+              {lang === 'en' ? 'Season Configuration' : 'Ibihe by\'Ihinga'}
+            </h1>
+            <p style={{ margin: '4px 0 0 0', opacity: 0.9, fontSize: 14 }}>
+              {cooperativeName}
+            </p>
+          </div>
+        </div>
+        <p style={{ margin: 0, opacity: 0.9, fontSize: 14 }}>
+          {lang === 'en'
+            ? 'Configure default crop settings for all cooperative members this season'
+            : 'Shiraho amakuru y\'igihe cy\'ihinga kuri bose mu koperative'}
+        </p>
+      </div>
+      
+      {/* Success Message */}
+      {saveSuccess && (
+        <div style={{
+          background: '#d1fae5',
+          border: '2px solid #059669',
+          borderRadius: 12,
+          padding: '16px 20px',
+          marginBottom: 20,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          animation: 'fadeIn 0.3s ease'
+        }}>
+          <LuCircleCheck size={24} style={{ color: '#059669' }} />
+          <div>
+            <div style={{ fontWeight: 700, color: '#065f46', marginBottom: 2 }}>
+              {lang === 'en' ? 'Configuration Saved!' : 'Byabitswe Neza!'}
+            </div>
+            <div style={{ fontSize: 13, color: '#047857' }}>
+              {lang === 'en'
+                ? 'All cooperative farmers will use these settings for their predictions'
+                : 'Abahinzi bose mu koperative bazakoresha aya makuru'}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Info Card */}
+      {hasConfig && existingConfig && (
+        <div style={{
+          background: '#fef3c7',
+          border: '2px solid #fbbf24',
+          borderRadius: 12,
+          padding: '16px 20px',
+          marginBottom: 20,
+          display: 'flex',
+          alignItems: 'start',
+          gap: 12
+        }}>
+          <LuCircleAlert size={20} style={{ color: '#f59e0b', marginTop: 2, flexShrink: 0 }} />
+          <div style={{ fontSize: 13, color: '#78350f' }}>
+            <strong>{lang === 'en' ? 'Active Configuration:' : 'Amakuru Akora:'}</strong>
+            {' '}{existingConfig.season_name} • {existingConfig.crop_type} • {existingConfig.seed_variety}
+            <br />
+            {lang === 'en'
+              ? 'Updating will replace the current configuration for all members.'
+              : 'Guhindura bizasimbuza amakuru ariho kuri bose.'}
+          </div>
+        </div>
+      )}
+      
+      {/* Form */}
+      <form onSubmit={handleSubmit}>
+        <div style={{
+          background: 'white',
+          border: '1px solid #e2e8f0',
+          borderRadius: 16,
+          padding: '32px',
+          marginBottom: 24
+        }}>
+          {/* Season Name */}
+          <div style={{ marginBottom: 24 }}>
+            <label style={{
+              display: 'block',
+              fontSize: 14,
+              fontWeight: 700,
+              color: '#0f172a',
+              marginBottom: 8
+            }}>
+              <i className="bi bi-calendar3" style={{ marginRight: 6 }}></i>
+              {lang === 'en' ? 'Season Name' : 'Izina ry\'Igihe'}
+            </label>
+            <input
+              type="text"
+              value={form.season_name}
+              onChange={(e) => setForm({ ...form, season_name: e.target.value })}
+              placeholder={lang === 'en' ? 'e.g., 2026 Season A' : 'Urugero: 2026 Igihe cya A'}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: '2px solid #e2e8f0',
+                borderRadius: 10,
+                fontSize: 14,
+                fontFamily: 'inherit',
+                transition: 'all 0.2s ease'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#0891b2'}
+              onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
+              required
+            />
+            <div style={{
+              fontSize: 12,
+              color: '#64748b',
+              marginTop: 6,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4
+            }}>
+              <i className="bi bi-info-circle"></i>
+              {lang === 'en'
+                ? 'Example: "2026 Season A", "2026 Season B", "Short Rains 2026"'
+                : 'Urugero: "2026 Igihe cya A", "2026 Igihe cya B"'}
+            </div>
+          </div>
+          
+          {/* Crop Type */}
+          <div style={{ marginBottom: 24 }}>
+            <label style={{
+              display: 'block',
+              fontSize: 14,
+              fontWeight: 700,
+              color: '#0f172a',
+              marginBottom: 8
+            }}>
+              <LuSprout size={16} style={{ marginRight: 6, display: 'inline-block', verticalAlign: 'middle' }} />
+              {lang === 'en' ? 'Crop Type' : 'Ubwoko bw\'Igihingwa'}
+            </label>
+            <select
+              value={form.crop_type}
+              onChange={(e) => setForm({ 
+                ...form, 
+                crop_type: e.target.value,
+                seed_variety: seedVarieties[e.target.value]?.[0] || 'Improved'
+              })}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: '2px solid #e2e8f0',
+                borderRadius: 10,
+                fontSize: 14,
+                fontFamily: 'inherit',
+                background: cooperativeName.toLowerCase().includes('rice') ? '#f1f5f9' : 'white',
+                cursor: cooperativeName.toLowerCase().includes('rice') ? 'not-allowed' : 'pointer'
+              }}
+              disabled={cooperativeName.toLowerCase().includes('rice')}
+            >
+              <option value="Rice">Rice (Umuceri)</option>
+              <option value="Maize">Maize (Ibigori)</option>
+            </select>
+            {cooperativeName.toLowerCase().includes('rice') && (
+              <div style={{
+                fontSize: 12,
+                color: '#64748b',
+                marginTop: 6,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4
+              }}>
+                <i className="bi bi-lock-fill"></i>
+                {lang === 'en'
+                  ? 'Auto-detected from cooperative name'
+                  : 'Byashyizweho bimenyerewe ku izina rya koperative'}
+              </div>
+            )}
+          </div>
+          
+          {/* Seed Variety */}
+          <div style={{ marginBottom: 24 }}>
+            <label style={{
+              display: 'block',
+              fontSize: 14,
+              fontWeight: 700,
+              color: '#0f172a',
+              marginBottom: 8
+            }}>
+              <i className="bi bi-flower2" style={{ marginRight: 6 }}></i>
+              {lang === 'en' ? 'Seed Variety' : 'Ubwoko bw\'Imbuto'}
+            </label>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+              gap: 10
+            }}>
+              {currentVarieties.map(variety => (
+                <button
+                  key={variety}
+                  type="button"
+                  onClick={() => setForm({ ...form, seed_variety: variety })}
+                  style={{
+                    padding: '12px 16px',
+                    border: form.seed_variety === variety ? '2px solid #0891b2' : '2px solid #e2e8f0',
+                    borderRadius: 10,
+                    background: form.seed_variety === variety ? '#e0f2fe' : 'white',
+                    color: form.seed_variety === variety ? '#0891b2' : '#334155',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    position: 'relative'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (form.seed_variety !== variety) {
+                      e.target.style.borderColor = '#cbd5e1';
+                      e.target.style.background = '#f8fafc';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (form.seed_variety !== variety) {
+                      e.target.style.borderColor = '#e2e8f0';
+                      e.target.style.background = 'white';
+                    }
+                  }}
+                >
+                  {variety}
+                  {form.seed_variety === variety && (
+                    <i className="bi bi-check-circle-fill" style={{
+                      position: 'absolute',
+                      top: 6,
+                      right: 6,
+                      fontSize: 12,
+                      color: '#0891b2'
+                    }}></i>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* Fertilizer Type */}
+          <div style={{ marginBottom: 24 }}>
+            <label style={{
+              display: 'block',
+              fontSize: 14,
+              fontWeight: 700,
+              color: '#0f172a',
+              marginBottom: 8
+            }}>
+              <LuDroplet size={16} style={{ marginRight: 6, display: 'inline-block', verticalAlign: 'middle' }} />
+              {lang === 'en' ? 'Fertilizer Provided' : 'Ifumbire Itangwa'}
+            </label>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+              gap: 10
+            }}>
+              {['DAP', 'UREA', 'NPK', 'No Fertilizer'].map(fert => (
+                <button
+                  key={fert}
+                  type="button"
+                  onClick={() => setForm({ ...form, fertilizer_type: fert })}
+                  style={{
+                    padding: '12px 16px',
+                    border: form.fertilizer_type === fert ? '2px solid #059669' : '2px solid #e2e8f0',
+                    borderRadius: 10,
+                    background: form.fertilizer_type === fert ? '#d1fae5' : 'white',
+                    color: form.fertilizer_type === fert ? '#059669' : '#334155',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    position: 'relative'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (form.fertilizer_type !== fert) {
+                      e.target.style.borderColor = '#cbd5e1';
+                      e.target.style.background = '#f8fafc';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (form.fertilizer_type !== fert) {
+                      e.target.style.borderColor = '#e2e8f0';
+                      e.target.style.background = 'white';
+                    }
+                  }}
+                >
+                  {fert}
+                  {form.fertilizer_type === fert && (
+                    <i className="bi bi-check-circle-fill" style={{
+                      position: 'absolute',
+                      top: 6,
+                      right: 6,
+                      fontSize: 12,
+                      color: '#059669'
+                    }}></i>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* Irrigation Toggle */}
+          <div style={{ marginBottom: 0 }}>
+            <label style={{
+              display: 'block',
+              fontSize: 14,
+              fontWeight: 700,
+              color: '#0f172a',
+              marginBottom: 8
+            }}>
+              <i className="bi bi-moisture" style={{ marginRight: 6 }}></i>
+              {lang === 'en' ? 'Irrigation Infrastructure' : 'Ibiribwa by\'Amazi'}
+            </label>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 16,
+              padding: '16px 20px',
+              background: '#f8fafc',
+              borderRadius: 12,
+              border: '2px solid #e2e8f0'
+            }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, color: '#0f172a', marginBottom: 2 }}>
+                  {lang === 'en'
+                    ? 'Does the cooperative have wetland irrigation channels?'
+                    : 'Koperative ifite imiyoboro yo kuhira mu cyuzi?'}
+                </div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>
+                  {lang === 'en'
+                    ? 'Enable if cooperative farms are in wetlands with irrigation systems'
+                    : 'Emeza niba imirima iri mu cyuzi gifite sisitemu yo kuhira'}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, has_irrigation: !form.has_irrigation })}
+                style={{
+                  width: 56,
+                  height: 32,
+                  borderRadius: 99,
+                  border: 'none',
+                  background: form.has_irrigation ? '#059669' : '#cbd5e1',
+                  position: 'relative',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  flexShrink: 0
+                }}
+              >
+                <div style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: '50%',
+                  background: 'white',
+                  position: 'absolute',
+                  top: 4,
+                  left: form.has_irrigation ? 28 : 4,
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                }}></div>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            width: '100%',
+            padding: '16px',
+            background: loading ? '#cbd5e1' : 'linear-gradient(135deg, #0891b2 0%, #06b6d4 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: 12,
+            fontSize: 16,
+            fontWeight: 800,
+            cursor: loading ? 'not-allowed' : 'pointer',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10
+          }}
+          onMouseEnter={(e) => {
+            if (!loading) e.target.style.transform = 'translateY(-2px)';
+          }}
+          onMouseLeave={(e) => {
+            if (!loading) e.target.style.transform = 'translateY(0)';
+          }}
+        >
+          {loading ? (
+            <>
+              <div className="spin" style={{ width: 20, height: 20, borderWidth: 2 }}></div>
+              {lang === 'en' ? 'Saving...' : 'Biri Kubikwa...'}
+            </>
+          ) : (
+            <>
+              <LuCircleCheck size={20} />
+              {lang === 'en' ? 'Save Configuration' : 'Bika Amakuru'}
+            </>
+          )}
+        </button>
+      </form>
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+    </div>
+  );
+}

@@ -1,115 +1,114 @@
 /**
  * Centralized Icon Exports
- * Using Lucide React Icons for consistent, professional design
+ * Using React Icons Lucide for consistent, professional design
  */
 
-// Lucide Icons (Primary - Modern, Clean, Professional)
-import { 
+// React Icons (Lucide) - import aliasing for consistent shared names
+import {
   // Agriculture & Nature
-  Sprout,
-  Leaf,
-  Flower2,
-  MapPin,
-  Tractor,
-  
+  LuSprout as Sprout,
+  LuLeaf as Leaf,
+  LuFlower2 as Flower2,
+  LuMapPin as MapPin,
+  LuTractor as Tractor,
+
   // Weather & Climate
-  Cloud,
-  CloudRain,
-  CloudSun,
-  Thermometer,
-  Droplets,
-  Wind,
-  Sun,
-  
+  LuCloud as Cloud,
+  LuCloudRain as CloudRain,
+  LuCloudSun as CloudSun,
+  LuThermometer as Thermometer,
+  LuDroplets as Droplets,
+  LuWind as Wind,
+  LuSun as Sun,
+
   // Navigation & UI
-  Home,
-  TrendingUp,
-  BarChart3,
-  PieChart,
-  Activity,
-  Calendar,
-  Clock,
-  Search,
-  Filter,
-  Settings,
-  User,
-  Users,
-  Bell,
-  BellRing,
-  
+  LuHouse as Home,
+  LuTrendingUp as TrendingUp,
+  LuChartBar as BarChart3,
+  LuChartPie as PieChart,
+  LuActivity as Activity,
+  LuCalendar as Calendar,
+  LuClock as Clock,
+  LuSearch as Search,
+  LuFilter as Filter,
+  LuSettings as Settings,
+  LuUser as User,
+  LuUsers as Users,
+  LuBell as Bell,
+  LuBellRing as BellRing,
+
   // Actions
-  Plus,
-  Edit,
-  Trash2,
-  Save,
-  Download,
-  Upload,
-  RefreshCw,
-  Check,
-  CheckCircle2,
-  X,
-  XCircle,
-  AlertTriangle,
-  AlertCircle,
-  Info,
-  HelpCircle,
-  
+  LuPlus as Plus,
+  LuPencil as Edit,
+  LuTrash2 as Trash2,
+  LuSave as Save,
+  LuDownload as Download,
+  LuUpload as Upload,
+  LuRefreshCw as RefreshCw,
+  LuCheck as Check,
+  LuCircleCheck as CheckCircle2,
+  LuX as X,
+  LuCircleX as XCircle,
+  LuTriangleAlert as AlertTriangle,
+  LuInfo as Info,
+  LuCircleHelp as HelpCircle,
+
   // Status & Indicators
-  Trophy,
-  Star,
-  Sparkles,
-  Target,
-  Award,
-  TrendingDown,
-  
+  LuTrophy as Trophy,
+  LuStar as Star,
+  LuSparkles as Sparkles,
+  LuTarget as Target,
+  LuAward as Award,
+  LuTrendingDown as TrendingDown,
+  LuCircleAlert as AlertCircle,
+
   // Data & Reports
-  FileText,
-  ClipboardCheck,
-  ClipboardList,
-  BarChart4,
-  LineChart,
-  
+  LuFileText as FileText,
+  LuClipboardCheck as ClipboardCheck,
+  LuClipboardList as ClipboardList,
+  LuChartBarStacked as BarChart4,
+  LuChartLine as LineChart,
+
   // Location & Maps
-  Map,
-  MapPin as MapPinned,
-  Navigation,
-  Compass,
-  
+  LuMap as Map,
+  LuMapPin as MapPinned,
+  LuNavigation as Navigation,
+  LuCompass as Compass,
+
   // Farm & Agriculture Specific
-  Warehouse,
-  Package,
-  Box,
-  Boxes,
-  
+  LuWarehouse as Warehouse,
+  LuPackage as Package,
+  LuBox as Box,
+  LuBoxes as Boxes,
+
   // Communication
-  Send,
-  Mail,
-  MessageSquare,
-  Phone,
-  Smile,
-  
+  LuSend as Send,
+  LuMail as Mail,
+  LuMessageSquare as MessageSquare,
+  LuPhone as Phone,
+  LuSmile as Smile,
+
   // Navigation Arrows
-  ArrowRight,
-  ArrowLeft,
-  ArrowUp,
-  ArrowDown,
-  ChevronRight,
-  ChevronLeft,
-  ChevronDown,
-  ChevronUp,
-  
+  LuArrowRight as ArrowRight,
+  LuArrowLeft as ArrowLeft,
+  LuArrowUp as ArrowUp,
+  LuArrowDown as ArrowDown,
+  LuChevronRight as ChevronRight,
+  LuChevronLeft as ChevronLeft,
+  LuChevronDown as ChevronDown,
+  LuChevronUp as ChevronUp,
+
   // Misc
-  Eye,
-  EyeOff,
-  Lock,
-  Unlock,
-  LogOut,
-  LogIn,
-  Menu,
-  MoreVertical,
-  Maximize2,
-  Minimize2,
-} from 'lucide-react';
+  LuEye as Eye,
+  LuEyeOff as EyeOff,
+  LuLock as Lock,
+  LuDoorOpen as Unlock,
+  LuLogOut as LogOut,
+  LuLogIn as LogIn,
+  LuMenu as Menu,
+  LuMaximize2 as Maximize2,
+  LuMinimize2 as Minimize2,
+} from 'react-icons/lu';
 
 // Export organized by category
 export const AgricultureIcons = {
@@ -236,7 +235,7 @@ export const CommonIcons = {
   Success: CheckCircle2,
   Warning: AlertTriangle,
   Error: XCircle,
-  Info: AlertCircle,
+  Info: Info,
   
   // Data
   Chart: BarChart3,
